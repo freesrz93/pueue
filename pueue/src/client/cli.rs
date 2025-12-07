@@ -524,6 +524,24 @@ https://github.com/Nukesor/pueue/issues/350#issue-1359083118"
         #[arg(value_hint = ValueHint::DirPath)]
         output_directory: Option<PathBuf>,
     },
+
+    /// Print the full command of specified tasks in a single line.
+    ///
+    /// This is useful for copying the command directly.
+    Cmd {
+        /// The task ids whose commands should be printed.
+        #[arg(required = true)]
+        task_ids: Vec<usize>,
+    },
+
+    /// Print the full path to the output file of specified tasks.
+    ///
+    /// This is useful for checking the log file directly.
+    Output {
+        /// The task ids whose output paths should be printed.
+        #[arg(required = true)]
+        task_ids: Vec<usize>,
+    },
 }
 
 #[derive(Parser, Debug, Clone)]

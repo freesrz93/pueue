@@ -18,6 +18,7 @@ use crate::internal_prelude::*;
 
 mod add;
 mod clean;
+mod cmd;
 mod edit;
 mod enqueue;
 mod env;
@@ -25,6 +26,7 @@ mod follow;
 mod group;
 mod kill;
 mod log;
+mod output;
 mod parallel;
 mod pause;
 mod remove;
@@ -40,6 +42,7 @@ mod wait;
 
 use add::add_task;
 use clean::clean;
+use cmd::print_cmd;
 use edit::edit;
 use enqueue::enqueue;
 use env::env;
@@ -47,6 +50,7 @@ use follow::follow;
 use group::group;
 use kill::kill;
 use log::print_logs;
+use output::print_output;
 use parallel::parallel;
 use pause::pause;
 use remove::remove;
@@ -290,6 +294,8 @@ pub async fn handle_command(
             quiet,
             status,
         } => wait(client, style, task_ids, group, all, quiet, status).await,
+        SubCommand::Cmd { task_ids } => print_cmd(client, style, task_ids).await,
+        SubCommand::Output { task_ids } => print_output(client, settings, style, task_ids).await,
         _ => bail!("unhandled WIP"),
     }
 }
