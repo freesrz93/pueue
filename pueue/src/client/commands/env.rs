@@ -1,4 +1,7 @@
-use pueue_lib::{Client, message::EnvRequest};
+use pueue_lib::{
+    Client,
+    message::{EnvRequest, Response},
+};
 
 use super::handle_response;
 use crate::{
@@ -19,11 +22,20 @@ pub async fn env(client: &mut Client, style: &OutputStyle, cmd: EnvCommand) -> R
             value,
         },
         EnvCommand::Unset { task_id, key } => EnvRequest::Unset { task_id, key },
+        EnvCommand::List { task_id } => EnvRequest::List { task_id },
     };
 
     client.send_request(request).await?;
 
     let response = client.receive_response().await?;
+
+    if let Response::EnvVars(env_response) = response {
+        for (key, value) in env_response.envs {
+            println!("{key}={value}");
+        }
+
+        return Ok(());
+    }
 
     handle_response(style, response)
 }

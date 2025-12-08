@@ -63,6 +63,9 @@ pub enum Response {
 
     Group(GroupResponse),
 
+    /// List environment variables of a task.
+    EnvVars(EnvListResponse),
+
     /// The next chunk of output, that's send to the client.
     Stream(StreamResponse),
 
@@ -116,6 +119,14 @@ pub struct GroupResponse {
     pub groups: BTreeMap<String, Group>,
 }
 impl_into_response!(GroupResponse, Response::Group);
+
+/// Environment variables of a task.
+#[derive(PartialEq, Eq, Clone, Debug, Deserialize, Serialize)]
+pub struct EnvListResponse {
+    pub task_id: usize,
+    pub envs: BTreeMap<String, String>,
+}
+impl_into_response!(EnvListResponse, Response::EnvVars);
 
 /// Live log output returned by the daemon.
 ///

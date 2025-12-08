@@ -229,6 +229,9 @@ pub enum EnvRequest {
         task_id: usize,
         key: String,
     },
+    List {
+        task_id: usize,
+    },
 }
 impl_into_request!(EnvRequest, Request::Env);
 

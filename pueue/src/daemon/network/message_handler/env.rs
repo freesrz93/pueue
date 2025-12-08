@@ -1,3 +1,5 @@
+use std::collections::BTreeMap;
+
 use pueue_lib::{Settings, message::*};
 
 use crate::{
@@ -45,6 +47,19 @@ pub fn env(settings: &Settings, state: &SharedState, message: EnvRequest) -> Res
                     "No environment variable with key '{key}' found."
                 )),
             }
+        }
+        EnvRequest::List { task_id } => {
+            let Some(task) = state.tasks().get(&task_id) else {
+                return create_failure_response(format!("No task with id {task_id}"));
+            };
+
+            let envs = task
+                .envs
+                .iter()
+                .map(|(key, value)| (key.clone(), value.clone()))
+                .collect::<BTreeMap<String, String>>();
+
+            EnvListResponse { task_id, envs }.into()
         }
     };
 

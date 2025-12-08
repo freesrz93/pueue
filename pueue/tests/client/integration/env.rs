@@ -58,3 +58,29 @@ async fn unset_environment() -> Result<()> {
 
     Ok(())
 }
+
+/// Test listing environment variables for a task.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn list_environment() -> Result<()> {
+    let daemon = daemon().await?;
+    let shared = &daemon.settings.shared;
+
+    // Add a stashed task so we can edit it.
+    run_client_command(shared, &["add", "--stashed", "echo test"])?;
+
+    // Set multiple environment variables
+    run_client_command(shared, &["env", "set", "0", "VAR1", "value1"])?;
+    run_client_command(shared, &["env", "set", "0", "VAR2", "value2"])?;
+    run_client_command(shared, &["env", "set", "0", "VAR3", "value3"])?;
+
+    // List the environment variables
+    let output = run_client_command(shared, &["env", "list", "0"])?;
+    let stdout = String::from_utf8_lossy(&output.stdout);
+
+    // Verify all variables are listed
+    assert!(stdout.contains("VAR1=value1"));
+    assert!(stdout.contains("VAR2=value2"));
+    assert!(stdout.contains("VAR3=value3"));
+
+    Ok(())
+}

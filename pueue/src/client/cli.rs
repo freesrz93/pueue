@@ -566,6 +566,12 @@ pub enum EnvCommand {
         /// The name of the environment variable to set.
         key: String,
     },
+
+    /// List all environment variables for a specific task.
+    List {
+        /// The id of the task whose environment variables should be displayed.
+        task_id: usize,
+    },
 }
 
 #[derive(Parser, Debug, Clone)]
