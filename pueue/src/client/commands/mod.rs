@@ -19,6 +19,7 @@ use crate::internal_prelude::*;
 mod add;
 mod clean;
 mod cmd;
+mod copy;
 mod edit;
 mod enqueue;
 mod env;
@@ -43,6 +44,7 @@ mod wait;
 use add::add_task;
 use clean::clean;
 use cmd::print_cmd;
+use copy::copy;
 use edit::edit;
 use enqueue::enqueue;
 use env::env;
@@ -267,6 +269,12 @@ pub async fn handle_command(
             )
             .await
         }
+        SubCommand::Copy {
+            task_ids,
+            start_immediately,
+            enqueue,
+            edit,
+        } => copy(client, settings, task_ids, start_immediately, enqueue, edit).await,
         SubCommand::Send { task_id, input } => send(client, style, task_id, input).await,
         SubCommand::Shutdown => shutdown(client, style).await,
         SubCommand::Stash {

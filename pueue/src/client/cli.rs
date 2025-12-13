@@ -243,6 +243,31 @@ pub enum SubCommand {
         edit: bool,
     },
 
+    /// Copy existing task(s) with the same command and configuration.
+    ///
+    /// Unlike `restart`, this command works on tasks in any state, not just finished/failed tasks.
+    /// The copied tasks will have " (copy from #N)" appended to their label to indicate the source.
+    /// By default, copied tasks are created in "Stashed" state.
+    #[command(alias("cp"))]
+    Copy {
+        /// Copy these specific tasks.
+        task_ids: Vec<usize>,
+
+        /// Immediately start the tasks, no matter how many open slots there are.
+        /// This will ignore any dependencies tasks may have.
+        #[arg(short = 'k', long = "immediate", conflicts_with = "enqueue")]
+        start_immediately: bool,
+
+        /// Enqueue the copied tasks instead of stashing them.
+        /// By default, copied tasks are stashed.
+        #[arg(long)]
+        enqueue: bool,
+
+        /// Edit the task before copying.
+        #[arg(short, long)]
+        edit: bool,
+    },
+
     /// Either pause running tasks or specific groups of tasks.
     ///
     /// By default, pauses the default group and all its tasks.

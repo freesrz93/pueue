@@ -1,5 +1,6 @@
 mod completions;
 mod configuration;
+mod copy;
 mod edit;
 mod env;
 mod follow;
