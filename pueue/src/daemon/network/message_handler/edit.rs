@@ -1,9 +1,68 @@
+use std::collections::HashSet;
+
 use pueue_lib::{TaskStatus, failure_msg, message::*, success_msg};
 
 use super::*;
 use crate::{
     aliasing::insert_alias, daemon::internal_state::SharedState, ok_or_save_state_failure,
 };
+
+/// Check for circular dependencies using depth-first search.
+/// Returns Ok(()) if no circular dependency is found, otherwise returns an error message.
+fn check_circular_dependency(
+    state: &crate::daemon::internal_state::state::LockedState,
+    task_id: usize,
+    new_dependencies: &[usize],
+) -> Result<(), String> {
+    let mut visited = HashSet::new();
+    let mut path = Vec::new();
+
+    fn dfs(
+        state: &crate::daemon::internal_state::state::LockedState,
+        current_id: usize,
+        target_id: usize,
+        visited: &mut HashSet<usize>,
+        path: &mut Vec<usize>,
+    ) -> bool {
+        if current_id == target_id && !path.is_empty() {
+            return true; // Found a cycle
+        }
+
+        if visited.contains(&current_id) {
+            return false;
+        }
+
+        visited.insert(current_id);
+        path.push(current_id);
+
+        if let Some(task) = state.tasks().get(&current_id) {
+            for &dep_id in &task.dependencies {
+                if dfs(state, dep_id, target_id, visited, path) {
+                    return true;
+                }
+            }
+        }
+
+        path.pop();
+        false
+    }
+
+    // Check if any of the new dependencies would create a cycle
+    for &dep_id in new_dependencies {
+        visited.clear();
+        path.clear();
+
+        if dfs(state, dep_id, task_id, &mut visited, &mut path) {
+            path.push(task_id);
+            return Err(format!(
+                "Circular dependency detected: task {} -> {:?}",
+                task_id, path
+            ));
+        }
+    }
+
+    Ok(())
+}
 
 /// Invoked when calling `pueue edit`.
 /// If a user wants to edit a message, we need to send him the current command.
@@ -40,32 +99,78 @@ pub fn edit(
 ) -> Response {
     // Check whether the task exists and is locked. Abort if that's not the case.
     let mut state = state.lock().unwrap();
-    for editable_task in editable_tasks {
-        match state.tasks_mut().get_mut(&editable_task.id) {
+
+    // First, validate all tasks before making any changes
+    for editable_task in &editable_tasks {
+        // Check if task exists and is locked
+        match state.tasks().get(&editable_task.id) {
             Some(task) => {
-                let TaskStatus::Locked { previous_status } = &task.status else {
+                if !matches!(task.status, TaskStatus::Locked { .. }) {
                     return create_failure_response(format!(
                         "Task {} is no longer locked.",
                         editable_task.id
                     ));
-                };
-
-                // Restore the task to its previous state.
-                task.status = *previous_status.clone();
-
-                // Update all properties to the edited values.
-                task.original_command = editable_task.original_command.clone();
-                task.command = insert_alias(settings, editable_task.original_command);
-                task.path = editable_task.path;
-                task.label = editable_task.label;
-                task.priority = editable_task.priority;
-
-                ok_or_save_state_failure!(state.save(settings));
+                }
             }
             None => return failure_msg!("Task to edit has gone away: {}", editable_task.id),
         }
+
+        // Validate dependencies
+        // Check that all dependency tasks exist
+        let not_found: Vec<_> = editable_task
+            .dependencies
+            .iter()
+            .filter(|id| !state.tasks().contains_key(id))
+            .copied()
+            .collect();
+        if !not_found.is_empty() {
+            return create_failure_response(format!(
+                "Task {} has invalid dependencies: task(s) {:?} not found",
+                editable_task.id, not_found
+            ));
+        }
+
+        // Check for self-dependency
+        if editable_task.dependencies.contains(&editable_task.id) {
+            return create_failure_response(format!(
+                "Task {} cannot depend on itself",
+                editable_task.id
+            ));
+        }
+
+        // Check for circular dependencies
+        if let Err(err_msg) =
+            check_circular_dependency(&state, editable_task.id, &editable_task.dependencies)
+        {
+            return create_failure_response(err_msg);
+        }
     }
 
+    // All validations passed, now update the tasks
+    for editable_task in editable_tasks {
+        if let Some(task) = state.tasks_mut().get_mut(&editable_task.id) {
+            let TaskStatus::Locked { previous_status } = &task.status else {
+                // This shouldn't happen as we checked earlier, but handle it anyway
+                return create_failure_response(format!(
+                    "Task {} is no longer locked.",
+                    editable_task.id
+                ));
+            };
+
+            // Restore the task to its previous state.
+            task.status = *previous_status.clone();
+
+            // Update all properties to the edited values.
+            task.original_command = editable_task.original_command.clone();
+            task.command = insert_alias(settings, editable_task.original_command);
+            task.path = editable_task.path;
+            task.label = editable_task.label;
+            task.priority = editable_task.priority;
+            task.dependencies = editable_task.dependencies;
+        }
+    }
+
+    ok_or_save_state_failure!(state.save(settings));
     create_success_response("All tasks have been updated")
 }
 

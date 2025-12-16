@@ -181,7 +181,7 @@ async fn edit_task_toml() -> Result<()> {
     let mut envs = HashMap::new();
     envs.insert(
         "EDITOR",
-        "echo '[0]\nid = 0\ncommand = \"expected command string\"\npath = \"/tmp\"\npriority = 0' > ${PUEUE_EDIT_PATH} ||",
+        "echo '[0]\nid = 0\ncommand = \"expected command string\"\npath = \"/tmp\"\npriority = 0\ndependencies = []' > ${PUEUE_EDIT_PATH} ||",
     );
     run_client_command_with_env(shared, &["edit", "0"], envs)?.success()?;
 
@@ -238,6 +238,269 @@ async fn edit_with_alias() -> Result<()> {
     assert_eq!(task.path, daemon.tempdir.path());
     assert_eq!(task.label, None);
     assert_eq!(task.priority, 0);
+
+    Ok(())
+}
+
+/// Test that editing task dependencies works as expected.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn edit_add_dependencies() -> Result<()> {
+    let daemon = daemon().await?;
+    let shared = &daemon.settings.shared;
+
+    // Create three stashed tasks
+    for i in 0..3 {
+        let mut message = create_add_message(shared, &format!("task {}", i));
+        message.stashed = true;
+        send_request(shared, message)
+            .await
+            .context("Failed to add stashed task.")?;
+    }
+
+    // Edit task 2 to depend on tasks 0 and 1
+    let mut envs = HashMap::new();
+    envs.insert(
+        "EDITOR",
+        "echo '0 1' > ${PUEUE_EDIT_PATH}/2/dependencies ||",
+    );
+    run_client_command_with_env(shared, &["edit", "2"], envs)?.success()?;
+
+    // Verify the dependencies were set correctly
+    let state = get_state(shared).await?;
+    let task = state.tasks.get(&2).unwrap();
+    assert_eq!(task.dependencies, vec![0, 1]);
+
+    Ok(())
+}
+
+/// Test that editing dependencies with comma-separated values works.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn edit_dependencies_comma_separated() -> Result<()> {
+    let daemon = daemon().await?;
+    let shared = &daemon.settings.shared;
+
+    // Create three stashed tasks
+    for i in 0..3 {
+        let mut message = create_add_message(shared, &format!("task {}", i));
+        message.stashed = true;
+        send_request(shared, message)
+            .await
+            .context("Failed to add stashed task.")?;
+    }
+
+    // Edit task 2 to depend on tasks 0 and 1 using comma-separated format
+    let mut envs = HashMap::new();
+    envs.insert(
+        "EDITOR",
+        "echo '0, 1' > ${PUEUE_EDIT_PATH}/2/dependencies ||",
+    );
+    run_client_command_with_env(shared, &["edit", "2"], envs)?.success()?;
+
+    // Verify the dependencies were set correctly
+    let state = get_state(shared).await?;
+    let task = state.tasks.get(&2).unwrap();
+    assert_eq!(task.dependencies, vec![0, 1]);
+
+    Ok(())
+}
+
+/// Test that clearing dependencies by leaving the file empty works.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn edit_clear_dependencies() -> Result<()> {
+    let daemon = daemon().await?;
+    let shared = &daemon.settings.shared;
+
+    // Create two tasks, with task 1 depending on task 0
+    let mut message = create_add_message(shared, "task 0");
+    message.stashed = true;
+    send_request(shared, message)
+        .await
+        .context("Failed to add stashed task.")?;
+
+    let mut message = create_add_message(shared, "task 1");
+    message.stashed = true;
+    message.dependencies = vec![0];
+    send_request(shared, message)
+        .await
+        .context("Failed to add stashed task.")?;
+
+    // Verify initial dependency
+    let state = get_state(shared).await?;
+    let task = state.tasks.get(&1).unwrap();
+    assert_eq!(task.dependencies, vec![0]);
+
+    // Clear the dependencies by writing empty string
+    let mut envs = HashMap::new();
+    envs.insert("EDITOR", "echo '' > ${PUEUE_EDIT_PATH}/1/dependencies ||");
+    run_client_command_with_env(shared, &["edit", "1"], envs)?.success()?;
+
+    // Verify dependencies were cleared
+    let state = get_state(shared).await?;
+    let task = state.tasks.get(&1).unwrap();
+    assert_eq!(task.dependencies, Vec::<usize>::new());
+
+    Ok(())
+}
+
+/// Test that self-dependency is rejected.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn edit_reject_self_dependency() -> Result<()> {
+    let daemon = daemon().await?;
+    let shared = &daemon.settings.shared;
+
+    // Create a stashed task
+    let mut message = create_add_message(shared, "task 0");
+    message.stashed = true;
+    send_request(shared, message)
+        .await
+        .context("Failed to add stashed task.")?;
+
+    // Try to make task depend on itself
+    let mut envs = HashMap::new();
+    envs.insert("EDITOR", "echo '0' > ${PUEUE_EDIT_PATH}/0/dependencies ||");
+    let output = run_client_command_with_env(shared, &["edit", "0"], envs)?.failure()?;
+
+    // Verify it failed
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        stderr.contains("cannot depend on itself"),
+        "Expected self-dependency error, got: {}",
+        stderr
+    );
+
+    Ok(())
+}
+
+/// Test that non-existent dependency is rejected.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn edit_reject_nonexistent_dependency() -> Result<()> {
+    let daemon = daemon().await?;
+    let shared = &daemon.settings.shared;
+
+    // Create a stashed task
+    let mut message = create_add_message(shared, "task 0");
+    message.stashed = true;
+    send_request(shared, message)
+        .await
+        .context("Failed to add stashed task.")?;
+
+    // Try to make task depend on non-existent task 999
+    let mut envs = HashMap::new();
+    envs.insert(
+        "EDITOR",
+        "echo '999' > ${PUEUE_EDIT_PATH}/0/dependencies ||",
+    );
+    let output = run_client_command_with_env(shared, &["edit", "0"], envs)?.failure()?;
+
+    // Verify it failed
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        stderr.contains("not found") || stderr.contains("999"),
+        "Expected non-existent dependency error, got: {}",
+        stderr
+    );
+
+    Ok(())
+}
+
+/// Test that circular dependencies are detected and rejected.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn edit_reject_circular_dependency() -> Result<()> {
+    let daemon = daemon().await?;
+    let shared = &daemon.settings.shared;
+
+    // Create two tasks where task 1 depends on task 0
+    let mut message = create_add_message(shared, "task 0");
+    message.stashed = true;
+    send_request(shared, message)
+        .await
+        .context("Failed to add stashed task.")?;
+
+    let mut message = create_add_message(shared, "task 1");
+    message.stashed = true;
+    message.dependencies = vec![0];
+    send_request(shared, message)
+        .await
+        .context("Failed to add stashed task.")?;
+
+    // Try to make task 0 depend on task 1 (creating a cycle)
+    let mut envs = HashMap::new();
+    envs.insert("EDITOR", "echo '1' > ${PUEUE_EDIT_PATH}/0/dependencies ||");
+    let output = run_client_command_with_env(shared, &["edit", "0"], envs)?.failure()?;
+
+    // Verify it failed with circular dependency error
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        stderr.contains("Circular dependency") || stderr.contains("circular"),
+        "Expected circular dependency error, got: {}",
+        stderr
+    );
+
+    Ok(())
+}
+
+/// Test that dependencies are automatically sorted and deduplicated.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn edit_dependencies_sort_and_dedup() -> Result<()> {
+    let daemon = daemon().await?;
+    let shared = &daemon.settings.shared;
+
+    // Create four stashed tasks
+    for i in 0..4 {
+        let mut message = create_add_message(shared, &format!("task {}", i));
+        message.stashed = true;
+        send_request(shared, message)
+            .await
+            .context("Failed to add stashed task.")?;
+    }
+
+    // Edit task 3 with unsorted and duplicate dependencies
+    let mut envs = HashMap::new();
+    envs.insert(
+        "EDITOR",
+        "echo '2 0 1 2 0' > ${PUEUE_EDIT_PATH}/3/dependencies ||",
+    );
+    run_client_command_with_env(shared, &["edit", "3"], envs)?.success()?;
+
+    // Verify dependencies were sorted and deduplicated
+    let state = get_state(shared).await?;
+    let task = state.tasks.get(&3).unwrap();
+    assert_eq!(task.dependencies, vec![0, 1, 2]);
+
+    Ok(())
+}
+
+/// Test editing dependencies in TOML mode.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn edit_dependencies_toml() -> Result<()> {
+    // Overwrite the edit mode to toml.
+    let (mut settings, tempdir) = daemon_base_setup()?;
+    settings.client.edit_mode = EditMode::Toml;
+    settings.save(&Some(tempdir.path().join("pueue.yml")))?;
+    let daemon = daemon_with_settings(settings, tempdir).await?;
+    let shared = &daemon.settings.shared;
+
+    // Create three stashed tasks
+    for i in 0..3 {
+        let mut message = create_add_message(shared, &format!("task {}", i));
+        message.stashed = true;
+        send_request(shared, message)
+            .await
+            .context("Failed to add stashed task.")?;
+    }
+
+    // Edit task 2 to depend on tasks 0 and 1 using TOML format
+    let mut envs = HashMap::new();
+    envs.insert(
+        "EDITOR",
+        "echo '[2]\nid = 2\ncommand = \"task 2\"\npath = \"/tmp\"\npriority = 0\ndependencies = [0, 1]' > ${PUEUE_EDIT_PATH} ||",
+    );
+    run_client_command_with_env(shared, &["edit", "2"], envs)?.success()?;
+
+    // Verify the dependencies were set correctly
+    let state = get_state(shared).await?;
+    let task = state.tasks.get(&2).unwrap();
+    assert_eq!(task.dependencies, vec![0, 1]);
 
     Ok(())
 }

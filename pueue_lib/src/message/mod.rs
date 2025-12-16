@@ -20,6 +20,7 @@ pub struct EditableTask {
     pub path: PathBuf,
     pub label: Option<String>,
     pub priority: i32,
+    pub dependencies: Vec<usize>,
 }
 
 impl From<&Task> for EditableTask {
@@ -31,6 +32,7 @@ impl From<&Task> for EditableTask {
             path: task.path.clone(),
             label: task.label.clone(),
             priority: task.priority,
+            dependencies: task.dependencies.clone(),
         }
     }
 }
@@ -42,5 +44,6 @@ impl EditableTask {
         task.path = self.path;
         task.label = self.label;
         task.priority = self.priority;
+        task.dependencies = self.dependencies;
     }
 }

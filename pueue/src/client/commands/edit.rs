@@ -239,6 +239,23 @@ impl Editable for EditableTask {
             Error::IoPathError(priority_path.clone(), "writing priority file", err)
         })?;
 
+        // Create dependencies file with task IDs separated by spaces
+        let deps_path = task_dir.join("dependencies");
+        let mut output = File::create(&deps_path).map_err(|err| {
+            Error::IoPathError(deps_path.clone(), "creating dependencies file", err)
+        })?;
+        if !self.dependencies.is_empty() {
+            let deps_str = self
+                .dependencies
+                .iter()
+                .map(|id| id.to_string())
+                .collect::<Vec<_>>()
+                .join(" ");
+            write!(output, "{}", deps_str).map_err(|err| {
+                Error::IoPathError(deps_path.clone(), "writing dependencies file", err)
+            })?;
+        }
+
         Ok(())
     }
 
@@ -298,6 +315,32 @@ impl Editable for EditableTask {
             "Failed to parse priority string '{}' into an integer for task {}",
             priority, self.id
         ))?;
+
+        // Read dependencies file. Parse space-separated task IDs
+        let deps_path = task_dir.join("dependencies");
+        let deps_content = read_to_string(&deps_path).map_err(|err| {
+            Error::IoPathError(deps_path.clone(), "reading dependencies file", err)
+        })?;
+
+        let deps_content = deps_content.trim();
+        if deps_content.is_empty() {
+            self.dependencies = Vec::new();
+        } else {
+            // Parse space or comma separated task IDs
+            self.dependencies = deps_content
+                .split(|c: char| c.is_whitespace() || c == ',')
+                .filter(|s| !s.is_empty())
+                .map(|s| s.trim().parse::<usize>())
+                .collect::<Result<Vec<_>, _>>()
+                .context(format!(
+                    "Failed to parse dependencies '{}' for task {}. Use space or comma separated task IDs.",
+                    deps_content, self.id
+                ))?;
+
+            // Sort and deduplicate
+            self.dependencies.sort_unstable();
+            self.dependencies.dedup();
+        }
 
         Ok(())
     }
