@@ -1,3 +1,4 @@
+mod archive;
 mod completions;
 mod configuration;
 mod copy;

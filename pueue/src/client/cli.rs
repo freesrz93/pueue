@@ -101,6 +101,18 @@ pub enum SubCommand {
         #[arg(required = true)]
         task_ids: Vec<usize>,
     },
+
+    /// Archive tasks by copying them into the hidden "archive" group.
+    ///
+    /// Without any ids, this shows the contents of the archive group.
+    Archive {
+        /// The task ids to be archived. If omitted, the archive group is shown instead.
+        task_ids: Vec<usize>,
+
+        /// Print the archive group's state as json.
+        #[arg(short, long)]
+        json: bool,
+    },
     /// Switches the queue position of two commands.
     ///
     /// Only works on queued and stashed commands.

@@ -4,7 +4,7 @@ use chrono::{DateTime, Local, LocalResult};
 use pueue_lib::{
     Client,
     settings::Settings,
-    state::{PUEUE_DEFAULT_GROUP, State},
+    state::{PUEUE_ARCHIVE_GROUP, PUEUE_DEFAULT_GROUP, State},
     task::Task,
 };
 
@@ -54,6 +54,16 @@ fn print_state(
     let mut output = String::new();
 
     let mut table_builder = TableBuilder::new(settings, style);
+
+    let viewing_archive = matches!(group.as_deref(), Some(PUEUE_ARCHIVE_GROUP));
+
+    if !viewing_archive {
+        tasks.retain(|task| task.group != PUEUE_ARCHIVE_GROUP);
+    }
+
+    if let Some(group_name) = &group {
+        tasks.retain(|task| &task.group == group_name);
+    }
 
     if let Some(query) = &query {
         let query_result = apply_query(&query.join(" "), &group)?;
@@ -131,7 +141,7 @@ fn print_all_groups(
     // Early exit and hint if there are no tasks in the queue
     // Print the state of the default group anyway, since this is information one wants to
     // see most of the time anyway.
-    if state.tasks.is_empty() {
+    if tasks.is_empty() {
         let headline = get_group_headline(
             PUEUE_DEFAULT_GROUP,
             state.groups.get(PUEUE_DEFAULT_GROUP).unwrap(),

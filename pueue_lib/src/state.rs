@@ -7,6 +7,7 @@ use serde::{Deserialize, Serialize};
 use crate::task::Task;
 
 pub const PUEUE_DEFAULT_GROUP: &str = "default";
+pub const PUEUE_ARCHIVE_GROUP: &str = "archive";
 
 /// Represents the current status of a group.
 /// Each group acts as a queue and can be managed individually.

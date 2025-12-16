@@ -17,6 +17,7 @@ use pueue_lib::{
 use crate::internal_prelude::*;
 
 mod add;
+mod archive;
 mod clean;
 mod cmd;
 mod copy;
@@ -42,6 +43,7 @@ mod switch;
 mod wait;
 
 use add::add_task;
+use archive::archive;
 use clean::clean;
 use cmd::print_cmd;
 use copy::copy;
@@ -304,6 +306,10 @@ pub async fn handle_command(
         } => wait(client, style, task_ids, group, all, quiet, status).await,
         SubCommand::Cmd { task_ids } => print_cmd(client, style, task_ids).await,
         SubCommand::Output { task_ids } => print_output(client, settings, style, task_ids).await,
+        SubCommand::Archive { task_ids, json } => {
+            archive(client, settings, style, task_ids, json).await
+        }
+
         _ => bail!("unhandled WIP"),
     }
 }
