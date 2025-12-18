@@ -275,6 +275,11 @@ pub enum SubCommand {
         #[arg(long)]
         enqueue: bool,
 
+        /// Assign the copied tasks to a specific group.
+        /// If not specified, tasks will keep their original group.
+        #[arg(short, long)]
+        group: Option<String>,
+
         /// Edit the task before copying.
         #[arg(short, long)]
         edit: bool,

@@ -22,6 +22,7 @@ pub async fn copy(
     task_ids: Vec<usize>,
     start_immediately: bool,
     enqueue: bool,
+    group: Option<String>,
     edit: bool,
 ) -> Result<()> {
     if task_ids.is_empty() {
@@ -84,7 +85,7 @@ pub async fn copy(
             envs: task.envs.clone(),
             start_immediately,
             stashed: !enqueue,
-            group: task.group.clone(),
+            group: group.clone().unwrap_or(task.group.clone()),
             enqueue_at: None,
             dependencies: Vec::new(),
             priority: Some(task.priority),

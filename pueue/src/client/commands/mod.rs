@@ -275,8 +275,20 @@ pub async fn handle_command(
             task_ids,
             start_immediately,
             enqueue,
+            group,
             edit,
-        } => copy(client, settings, task_ids, start_immediately, enqueue, edit).await,
+        } => {
+            copy(
+                client,
+                settings,
+                task_ids,
+                start_immediately,
+                enqueue,
+                group,
+                edit,
+            )
+            .await
+        }
         SubCommand::Send { task_id, input } => send(client, style, task_id, input).await,
         SubCommand::Shutdown => shutdown(client, style).await,
         SubCommand::Stash {
