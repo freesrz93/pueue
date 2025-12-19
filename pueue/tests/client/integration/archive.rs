@@ -91,7 +91,7 @@ async fn archive_multiple_tasks() -> Result<()> {
     wait_for_task_condition(shared, 2, Task::is_done).await?;
 
     // Archive all three tasks.
-    run_client_command(shared, &["archive", "0", "1", "2"])?.success()?;
+    run_client_command(shared, &["archive", "0,1,2"])?.success()?;
 
     // Check that all original tasks are removed.
     let state = get_state(shared).await?;
@@ -412,7 +412,7 @@ async fn archive_task_and_dependent_together() -> Result<()> {
     wait_for_task_condition(shared, 1, Task::is_done).await?;
 
     // Archive both tasks together
-    run_client_command(shared, &["archive", "0", "1"])?.success()?;
+    run_client_command(shared, &["archive", "0,1"])?.success()?;
 
     // Both should be archived
     let state = get_state(shared).await?;

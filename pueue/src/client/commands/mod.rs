@@ -14,6 +14,7 @@ use pueue_lib::{
     task::Task,
 };
 
+use crate::client::task_ids_parser::parse_task_ids;
 use crate::internal_prelude::*;
 
 mod add;
@@ -204,13 +205,19 @@ pub async fn handle_command(
             successful_only,
             group,
         } => clean(client, style, group, successful_only).await,
-        SubCommand::Edit { task_ids } => edit(client, settings, style, task_ids).await,
+        SubCommand::Edit { task_ids } => {
+            let task_ids = parse_task_ids(&task_ids)?;
+            edit(client, settings, style, task_ids).await
+        }
         SubCommand::Enqueue {
             task_ids,
             group,
             all,
             delay_until,
-        } => enqueue(client, style, task_ids, group, all, delay_until).await,
+        } => {
+            let task_ids = parse_task_ids(&task_ids)?;
+            enqueue(client, style, task_ids, group, all, delay_until).await
+        }
         SubCommand::Env { cmd } => env(client, style, cmd).await,
         SubCommand::Follow { task_id, lines } => {
             follow(client, settings, style, task_id, lines).await
@@ -221,7 +228,10 @@ pub async fn handle_command(
             group,
             all,
             signal,
-        } => kill(client, settings, style, task_ids, group, all, signal).await,
+        } => {
+            let task_ids = parse_task_ids(&task_ids)?;
+            kill(client, settings, style, task_ids, group, all, signal).await
+        }
         SubCommand::Log {
             task_ids,
             group,
@@ -230,6 +240,7 @@ pub async fn handle_command(
             lines,
             full,
         } => {
+            let task_ids = parse_task_ids(&task_ids)?;
             print_logs(
                 client, settings, style, task_ids, group, all, json, lines, full,
             )
@@ -244,8 +255,14 @@ pub async fn handle_command(
             group,
             all,
             wait,
-        } => pause(client, style, task_ids, group, all, wait).await,
-        SubCommand::Remove { task_ids } => remove(client, settings, style, task_ids).await,
+        } => {
+            let task_ids = parse_task_ids(&task_ids)?;
+            pause(client, style, task_ids, group, all, wait).await
+        }
+        SubCommand::Remove { task_ids } => {
+            let task_ids = parse_task_ids(&task_ids)?;
+            remove(client, settings, style, task_ids).await
+        }
         SubCommand::Reset { force, groups } => reset(client, style, force, groups).await,
         SubCommand::Restart {
             task_ids,
@@ -257,6 +274,7 @@ pub async fn handle_command(
             not_in_place,
             edit,
         } => {
+            let task_ids = parse_task_ids(&task_ids)?;
             restart(
                 client,
                 settings,
@@ -278,6 +296,7 @@ pub async fn handle_command(
             group,
             edit,
         } => {
+            let task_ids = parse_task_ids(&task_ids)?;
             copy(
                 client,
                 settings,
@@ -296,12 +315,18 @@ pub async fn handle_command(
             group,
             all,
             delay_until,
-        } => stash(client, style, task_ids, group, all, delay_until).await,
+        } => {
+            let task_ids = parse_task_ids(&task_ids)?;
+            stash(client, style, task_ids, group, all, delay_until).await
+        }
         SubCommand::Start {
             task_ids,
             group,
             all,
-        } => start(client, style, task_ids, group, all).await,
+        } => {
+            let task_ids = parse_task_ids(&task_ids)?;
+            start(client, style, task_ids, group, all).await
+        }
         SubCommand::Status { query, json, group } => {
             state(client, settings, style, query, json, group).await
         }
@@ -315,10 +340,20 @@ pub async fn handle_command(
             all,
             quiet,
             status,
-        } => wait(client, style, task_ids, group, all, quiet, status).await,
-        SubCommand::Cmd { task_ids } => print_cmd(client, style, task_ids).await,
-        SubCommand::Output { task_ids } => print_output(client, settings, style, task_ids).await,
+        } => {
+            let task_ids = parse_task_ids(&task_ids)?;
+            wait(client, style, task_ids, group, all, quiet, status).await
+        }
+        SubCommand::Cmd { task_ids } => {
+            let task_ids = parse_task_ids(&task_ids)?;
+            print_cmd(client, style, task_ids).await
+        }
+        SubCommand::Output { task_ids } => {
+            let task_ids = parse_task_ids(&task_ids)?;
+            print_output(client, settings, style, task_ids).await
+        }
         SubCommand::Archive { task_ids, json } => {
+            let task_ids = parse_task_ids(&task_ids)?;
             archive(client, settings, style, task_ids, json).await
         }
 

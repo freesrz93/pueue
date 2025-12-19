@@ -167,7 +167,7 @@ async fn copy_multiple_tasks() -> Result<()> {
     wait_for_task_condition(shared, 2, Task::is_done).await?;
 
     // Copy all three tasks.
-    run_client_command(shared, &["copy", "0", "1", "2"])?.success()?;
+    run_client_command(shared, &["copy", "0,1,2"])?.success()?;
 
     // Check that all three tasks have been copied.
     let state = get_state(shared).await?;
@@ -260,7 +260,7 @@ async fn copy_multiple_tasks_to_different_group() -> Result<()> {
     assert_eq!(state.tasks.get(&2).unwrap().group, PUEUE_DEFAULT_GROUP);
 
     // Copy all three tasks to testgroup.
-    run_client_command(shared, &["copy", "-g", "testgroup", "0", "1", "2"])?.success()?;
+    run_client_command(shared, &["copy", "-g", "testgroup", "0,1,2"])?.success()?;
 
     // Check that all copied tasks are in testgroup.
     let state = get_state(shared).await?;

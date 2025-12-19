@@ -98,8 +98,9 @@ pub enum SubCommand {
     #[command(alias("rm"))]
     Remove {
         /// The task ids to be removed.
+        /// Supports comma-separated IDs (1,2,3) and ranges (1:5 or 1:10:2).
         #[arg(required = true)]
-        task_ids: Vec<usize>,
+        task_ids: String,
     },
 
     /// Archive tasks by copying them into the hidden "archive" group.
@@ -107,7 +108,9 @@ pub enum SubCommand {
     /// Without any ids, this shows the contents of the archive group.
     Archive {
         /// The task ids to be archived. If omitted, the archive group is shown instead.
-        task_ids: Vec<usize>,
+        /// Supports comma-separated IDs (1,2,3) and ranges (1:5 or 1:10:2).
+        #[arg(default_value = "")]
+        task_ids: String,
 
         /// Print the archive group's state as json.
         #[arg(short, long)]
@@ -128,7 +131,9 @@ pub enum SubCommand {
     /// Stashed entries can also be explicitely started via `pueue start $task_id`.
     Stash {
         /// Stash these specific tasks.
-        task_ids: Vec<usize>,
+        /// Supports comma-separated IDs (1,2,3) and ranges (1:5 or 1:10:2).
+        #[arg(default_value = "")]
+        task_ids: String,
 
         /// Stash all queued tasks in a group
         #[arg(short, long, conflicts_with = "all")]
@@ -169,7 +174,9 @@ pub enum SubCommand {
 ")]
     Enqueue {
         /// Enqueue these specific tasks.
-        task_ids: Vec<usize>,
+        /// Supports comma-separated IDs (1,2,3) and ranges (1:5 or 1:10:2).
+        #[arg(default_value = "")]
+        task_ids: String,
 
         /// Enqueue all stashed tasks in a group
         #[arg(short, long, conflicts_with = "all")]
@@ -192,7 +199,9 @@ pub enum SubCommand {
     Start {
         /// Start these specific tasks. Paused tasks will resumed. Queued/Stashed tasks will be
         /// force-started.
-        task_ids: Vec<usize>,
+        /// Supports comma-separated IDs (1,2,3) and ranges (1:5 or 1:10:2).
+        #[arg(default_value = "")]
+        task_ids: String,
 
         /// Resume a specific group and all paused tasks in it.
         ///
@@ -215,7 +224,9 @@ pub enum SubCommand {
     #[command(alias("re"))]
     Restart {
         /// Restart these specific tasks.
-        task_ids: Vec<usize>,
+        /// Supports comma-separated IDs (1,2,3) and ranges (1:5 or 1:10:2).
+        #[arg(default_value = "")]
+        task_ids: String,
 
         /// Restart all failed tasks across all groups.
         ///
@@ -263,7 +274,8 @@ pub enum SubCommand {
     #[command(alias("cp"))]
     Copy {
         /// Copy these specific tasks.
-        task_ids: Vec<usize>,
+        /// Supports comma-separated IDs (1,2,3) and ranges (1:5 or 1:10:2).
+        task_ids: String,
 
         /// Immediately start the tasks, no matter how many open slots there are.
         /// This will ignore any dependencies tasks may have.
@@ -291,7 +303,9 @@ pub enum SubCommand {
     /// A paused queue (group) won't start any new tasks.
     Pause {
         /// Pause these specific tasks.
-        task_ids: Vec<usize>,
+        /// Supports comma-separated IDs (1,2,3) and ranges (1:5 or 1:10:2).
+        #[arg(default_value = "")]
+        task_ids: String,
 
         /// Pause a specific group.
         #[arg(short, long, conflicts_with = "all")]
@@ -311,7 +325,9 @@ pub enum SubCommand {
     /// Kills all tasks of the default group when no ids or a specific group are provided.
     Kill {
         /// Kill these specific tasks.
-        task_ids: Vec<usize>,
+        /// Supports comma-separated IDs (1,2,3) and ranges (1:5 or 1:10:2).
+        #[arg(default_value = "")]
+        task_ids: String,
 
         /// Kill all running tasks in a group. This also pauses the group.
         #[arg(short, long, conflicts_with = "all")]
@@ -347,7 +363,8 @@ pub enum SubCommand {
     /// A temporary folder folder/file will be opened by your $EDITOR to edit the tasks.
     Edit {
         /// The ids of all tasks that should be edited.
-        task_ids: Vec<usize>,
+        /// Supports comma-separated IDs (1,2,3) and ranges (1:5 or 1:10:2).
+        task_ids: String,
     },
 
     /// Use this to add or remove environment variables from tasks.
@@ -440,7 +457,9 @@ https://github.com/Nukesor/pueue/issues/350#issue-1359083118"
     /// If you want to follow the output of a task, please use the \"follow\" subcommand.
     Log {
         /// View the task output of these specific tasks.
-        task_ids: Vec<usize>,
+        /// Supports comma-separated IDs (1,2,3) and ranges (1:5 or 1:10:2).
+        #[arg(default_value = "")]
+        task_ids: String,
 
         /// View the outputs of this specific group's tasks.
         #[arg(short, long)]
@@ -492,7 +511,9 @@ https://github.com/Nukesor/pueue/issues/350#issue-1359083118"
     /// Includes: [Paused, Stashed, Locked, Queued, ...]
     Wait {
         /// This allows you to wait for specific tasks to finish.
-        task_ids: Vec<usize>,
+        /// Supports comma-separated IDs (1,2,3) and ranges (1:5 or 1:10:2).
+        #[arg(default_value = "")]
+        task_ids: String,
 
         /// Wait for all tasks in a specific group
         #[arg(short, long, conflicts_with = "all")]
@@ -572,8 +593,9 @@ https://github.com/Nukesor/pueue/issues/350#issue-1359083118"
     /// This is useful for copying the command directly.
     Cmd {
         /// The task ids whose commands should be printed.
+        /// Supports comma-separated IDs (1,2,3) and ranges (1:5 or 1:10:2).
         #[arg(required = true)]
-        task_ids: Vec<usize>,
+        task_ids: String,
     },
 
     /// Print the full path to the output file of specified tasks.
@@ -581,8 +603,9 @@ https://github.com/Nukesor/pueue/issues/350#issue-1359083118"
     /// This is useful for checking the log file directly.
     Output {
         /// The task ids whose output paths should be printed.
+        /// Supports comma-separated IDs (1,2,3) and ranges (1:5 or 1:10:2).
         #[arg(required = true)]
-        task_ids: Vec<usize>,
+        task_ids: String,
     },
 }
 
