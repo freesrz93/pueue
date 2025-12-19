@@ -20,7 +20,7 @@ async fn archive_finished_task() -> Result<()> {
 
     // Original task should be gone
     assert!(
-        state.tasks.get(&0).is_none(),
+        !state.tasks.contains_key(&0),
         "Original task should be removed"
     );
 
@@ -95,9 +95,9 @@ async fn archive_multiple_tasks() -> Result<()> {
 
     // Check that all original tasks are removed.
     let state = get_state(shared).await?;
-    assert!(state.tasks.get(&0).is_none());
-    assert!(state.tasks.get(&1).is_none());
-    assert!(state.tasks.get(&2).is_none());
+    assert!(!state.tasks.contains_key(&0));
+    assert!(!state.tasks.contains_key(&1));
+    assert!(!state.tasks.contains_key(&2));
 
     // Should have three tasks in archive group
     let archived_tasks: Vec<_> = state
@@ -123,7 +123,7 @@ async fn archive_running_task_fails() -> Result<()> {
     // Attempt to archive the running task should fail or skip it.
     let result = run_client_command(shared, &["archive", "0"]);
     assert!(
-        result.is_err() || result.unwrap().status.success() == false,
+        result.is_err() || !result.unwrap().status.success(),
         "Archiving a running task should fail or indicate it was skipped"
     );
 
@@ -154,7 +154,7 @@ async fn archive_queued_task() -> Result<()> {
     // Check that the task was archived.
     let state = get_state(shared).await?;
     assert!(
-        state.tasks.get(&0).is_none(),
+        !state.tasks.contains_key(&0),
         "Original task should be removed"
     );
 
@@ -390,7 +390,7 @@ async fn archive_task_with_active_dependencies() -> Result<()> {
     // Task 0 should still exist
     let state = get_state(shared).await?;
     assert!(
-        state.tasks.get(&0).is_some(),
+        state.tasks.contains_key(&0),
         "Task with active dependants should not be archived"
     );
 
@@ -416,8 +416,8 @@ async fn archive_task_and_dependent_together() -> Result<()> {
 
     // Both should be archived
     let state = get_state(shared).await?;
-    assert!(state.tasks.get(&0).is_none());
-    assert!(state.tasks.get(&1).is_none());
+    assert!(!state.tasks.contains_key(&0));
+    assert!(!state.tasks.contains_key(&1));
 
     let archived_count = state
         .tasks

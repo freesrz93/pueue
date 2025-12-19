@@ -250,7 +250,7 @@ async fn edit_add_dependencies() -> Result<()> {
 
     // Create three stashed tasks
     for i in 0..3 {
-        let mut message = create_add_message(shared, &format!("task {}", i));
+        let mut message = create_add_message(shared, format!("task {}", i));
         message.stashed = true;
         send_request(shared, message)
             .await
@@ -281,7 +281,7 @@ async fn edit_dependencies_comma_separated() -> Result<()> {
 
     // Create three stashed tasks
     for i in 0..3 {
-        let mut message = create_add_message(shared, &format!("task {}", i));
+        let mut message = create_add_message(shared, format!("task {}", i));
         message.stashed = true;
         send_request(shared, message)
             .await
@@ -447,7 +447,7 @@ async fn edit_dependencies_sort_and_dedup() -> Result<()> {
 
     // Create four stashed tasks
     for i in 0..4 {
-        let mut message = create_add_message(shared, &format!("task {}", i));
+        let mut message = create_add_message(shared, format!("task {}", i));
         message.stashed = true;
         send_request(shared, message)
             .await
@@ -482,7 +482,7 @@ async fn edit_dependencies_toml() -> Result<()> {
 
     // Create three stashed tasks
     for i in 0..3 {
-        let mut message = create_add_message(shared, &format!("task {}", i));
+        let mut message = create_add_message(shared, format!("task {}", i));
         message.stashed = true;
         send_request(shared, message)
             .await
