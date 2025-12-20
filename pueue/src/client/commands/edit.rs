@@ -8,6 +8,7 @@ use std::{
 
 use pueue_lib::{Client, error::Error, message::*, settings::Settings};
 use tempfile::tempdir;
+use toml::map::Map;
 
 use super::handle_response;
 use crate::{
@@ -109,16 +110,22 @@ pub fn edit_tasks(
 /// task commands.
 pub fn edit_tasks_with_toml(
     settings: &Settings,
-    editable_tasks: Vec<EditableTask>,
+    mut editable_tasks: Vec<EditableTask>,
     temp_dir_path: &Path,
 ) -> Result<Vec<EditableTask>> {
+    // Sort tasks by ID using natural order (2 before 10, etc.)
+    editable_tasks.sort_by_key(|task| task.id);
+
     // Convert to map for nicer representation and serialize to toml.
-    // The keys of the map must be strings for toml to work.
-    let map: BTreeMap<String, EditableTask> = BTreeMap::from_iter(
-        editable_tasks
-            .into_iter()
-            .map(|task| (task.id.to_string(), task)),
-    );
+    let mut map = Map::new();
+    for task in &editable_tasks {
+        let id_str = task.id.to_string();
+        let value = toml::Value::try_from(task).map_err(|err| {
+            Error::Generic(format!("\nFailed to convert task to TOML value:\n{err}"))
+        })?;
+        map.insert(id_str, value);
+    }
+
     let toml = toml::to_string(&map)
         .map_err(|err| Error::Generic(format!("\nFailed to serialize tasks to toml:\n{err}")))?;
     let temp_file_path = temp_dir_path.join("tasks.toml");

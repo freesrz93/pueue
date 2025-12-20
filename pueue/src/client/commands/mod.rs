@@ -25,8 +25,10 @@ mod copy;
 mod edit;
 mod enqueue;
 mod env;
+mod export;
 mod follow;
 mod group;
+mod import;
 mod kill;
 mod log;
 mod output;
@@ -51,8 +53,10 @@ use copy::copy;
 use edit::edit;
 use enqueue::enqueue;
 use env::env;
+use export::export;
 use follow::follow;
 use group::group;
+use import::import;
 use kill::kill;
 use log::print_logs;
 use output::print_output;
@@ -209,6 +213,11 @@ pub async fn handle_command(
             let task_ids = parse_task_ids(&task_ids)?;
             edit(client, settings, style, task_ids).await
         }
+        SubCommand::Export { task_ids, group } => {
+            let task_ids = parse_task_ids(&task_ids)?;
+            export(client, task_ids, group).await
+        }
+        SubCommand::Import { file, group } => import(client, settings, style, file, group).await,
         SubCommand::Enqueue {
             task_ids,
             group,

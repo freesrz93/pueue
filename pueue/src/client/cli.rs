@@ -367,6 +367,36 @@ pub enum SubCommand {
         task_ids: String,
     },
 
+    /// Export tasks to TOML format.
+    ///
+    /// By default, exports all tasks from the default group.
+    /// The output format is the same as the edit command's TOML format.
+    Export {
+        /// Export these specific tasks.
+        /// Supports comma-separated IDs (1,2,3) and ranges (1:5 or 1:10:2).
+        #[arg(default_value = "")]
+        task_ids: String,
+
+        /// Export all tasks from a specific group.
+        #[arg(short, long)]
+        group: Option<String>,
+    },
+
+    /// Import tasks from TOML format.
+    ///
+    /// Without any arguments, opens an empty TOML file in $EDITOR for editing.
+    /// After closing the editor, the tasks will be imported.
+    Import {
+        /// Read tasks from a file instead of opening an editor.
+        #[arg(short, long, value_hint = ValueHint::FilePath)]
+        file: Option<PathBuf>,
+
+        /// Assign imported tasks to a specific group.
+        /// If not specified, tasks will be assigned to the default group.
+        #[arg(short, long)]
+        group: Option<String>,
+    },
+
     /// Use this to add or remove environment variables from tasks.
     Env {
         #[command(subcommand)]
