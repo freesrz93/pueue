@@ -1,4 +1,9 @@
-use std::{collections::BTreeMap, fs::read_to_string, path::PathBuf};
+use std::{
+    collections::{BTreeMap, HashMap},
+    env::vars,
+    fs::read_to_string,
+    path::PathBuf,
+};
 
 use pueue_lib::{Client, Settings, error::Error, message::*, state::PUEUE_DEFAULT_GROUP};
 use serde::Deserialize;
@@ -94,7 +99,8 @@ pub async fn import(
         let message = Request::Add(AddRequest {
             command: importable_task.original_command.clone(),
             path: importable_task.path.clone(),
-            envs: Default::default(),
+            // Catch the current environment for later injection into the task's process.
+            envs: HashMap::from_iter(vars()),
             start_immediately: false,
             stashed: true,
             group: target_group.clone(),
