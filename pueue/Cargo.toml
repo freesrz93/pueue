@@ -1,6 +1,6 @@
 [package]
 name = "pueue"
-version = "5.1.1"
+version = "5.1.2"
 description = "A cli tool for managing long running shell commands."
 readme = "../README.md"
 keywords = ["command", "parallel", "queue", "shell", "task"]
@@ -34,6 +34,7 @@ command-group.workspace = true
 ctrlc = { version = "3", features = ["termination"] }
 flate2 = "1"
 handlebars.workspace = true
+indexmap = { version = "2", features = ["serde"] }
 interim = { version = "0.2", features = ["chrono_0_4"] }
 pest = "2.8"
 pest_derive = "2.8"

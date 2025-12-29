@@ -1053,6 +1053,8 @@ checksum = "0ad4bb2b565bca0645f4d68c5c9af97fba094e9791da685bf83cb5f3ce74acf2"
 dependencies = [
  "equivalent",
  "hashbrown",
+ "serde",
+ "serde_core",
 ]
 
 [[package]]
@@ -1624,7 +1626,7 @@ dependencies = [
 
 [[package]]
 name = "pueue"
-version = "5.1.1"
+version = "5.1.2"
 dependencies = [
  "assert_cmd",
  "assert_matches",
@@ -1643,6 +1645,7 @@ dependencies = [
  "ctrlc",
  "flate2",
  "handlebars",
+ "indexmap",
  "interim",
  "libproc",
  "pest",

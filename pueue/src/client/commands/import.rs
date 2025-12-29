@@ -1,9 +1,6 @@
-use std::{
-    collections::{BTreeMap, HashMap},
-    env::vars,
-    fs::read_to_string,
-    path::PathBuf,
-};
+use std::{collections::HashMap, env::vars, fs::read_to_string, path::PathBuf};
+
+use indexmap::IndexMap;
 
 use pueue_lib::{Client, Settings, error::Error, message::*, state::PUEUE_DEFAULT_GROUP};
 use serde::Deserialize;
@@ -84,7 +81,7 @@ pub async fn import(
     };
 
     // Parse the TOML content
-    let map: BTreeMap<String, ImportableTask> =
+    let map: IndexMap<String, ImportableTask> =
         toml::from_str(&content).context("Failed to deserialize TOML. Please check the format.")?;
 
     if map.is_empty() {
