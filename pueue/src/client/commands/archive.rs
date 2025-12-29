@@ -117,12 +117,6 @@ pub async fn archive(
     let mut new_task_ids = Vec::new();
 
     for (_, task) in archivable.iter() {
-        let label = task
-            .label
-            .clone()
-            .map(|label| format!("{label} (archived from #{})", task.id))
-            .or_else(|| Some(format!("(archived from #{})", task.id)));
-
         let add_task_message = AddRequest {
             command: task.original_command.clone(),
             path: task.path.clone(),
@@ -133,7 +127,7 @@ pub async fn archive(
             enqueue_at: None,
             dependencies: Vec::new(),
             priority: Some(task.priority),
-            label,
+            label: task.label.clone(),
         };
 
         client.send_request(add_task_message).await?;

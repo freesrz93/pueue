@@ -269,7 +269,6 @@ pub enum SubCommand {
     /// Copy existing task(s) with the same command and configuration.
     ///
     /// Unlike `restart`, this command works on tasks in any state, not just finished/failed tasks.
-    /// The copied tasks will have " (copy from #N)" appended to their label to indicate the source.
     /// By default, copied tasks are created in "Stashed" state.
     #[command(alias("cp"))]
     Copy {

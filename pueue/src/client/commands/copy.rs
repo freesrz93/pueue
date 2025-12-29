@@ -15,7 +15,6 @@ use crate::{
 
 /// Copy existing tasks, creating new tasks with the same command and configuration.
 /// Unlike restart, this works on tasks in any state.
-/// The copied tasks will have " (copy from #N)" appended to their label.
 pub async fn copy(
     client: &mut Client,
     settings: Settings,
@@ -70,26 +69,18 @@ pub async fn copy(
     // Go through all tasks we found and create new tasks from them.
     for (_, mut task) in tasks {
         task.status = new_status.clone();
-
-        // Append " (copy from #N)" to the label to indicate the source
-        let copy_label = if let Some(label) = &task.label {
-            format!("{} (copy from #{})", label, task.id)
-        } else {
-            format!("(copy from #{})", task.id)
-        };
-
         // Create a request to send the new task to the daemon.
         let add_task_message = AddRequest {
             command: task.original_command,
             path: task.path,
-            envs: task.envs.clone(),
+            envs: task.envs,
             start_immediately,
             stashed: !enqueue,
-            group: group.clone().unwrap_or(task.group.clone()),
+            group: group.clone().unwrap_or(task.group),
             enqueue_at: None,
             dependencies: Vec::new(),
             priority: Some(task.priority),
-            label: Some(copy_label),
+            label: task.label,
         };
 
         // Send the copied task to the daemon and abort on any failure messages.

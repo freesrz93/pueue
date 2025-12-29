@@ -28,7 +28,6 @@ async fn copy_simple_task() -> Result<()> {
     // Check the copied task (id 1)
     let copied_task = state.tasks.get(&1).unwrap();
     assert_eq!(copied_task.original_command, "echo 'test'");
-    assert_eq!(copied_task.label, Some("(copy from #0)".to_string()));
     assert!(
         matches!(copied_task.status, TaskStatus::Stashed { .. }),
         "Copied task should be stashed by default"
@@ -37,7 +36,7 @@ async fn copy_simple_task() -> Result<()> {
     Ok(())
 }
 
-/// Test that copying a task with a label preserves the label and adds the source indicator.
+/// Test that copying a task with a label preserves the label.
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn copy_task_with_label() -> Result<()> {
     let daemon = daemon().await?;
@@ -53,10 +52,7 @@ async fn copy_task_with_label() -> Result<()> {
     // Check that the new task has the correct label.
     let state = get_state(shared).await?;
     let copied_task = state.tasks.get(&1).unwrap();
-    assert_eq!(
-        copied_task.label,
-        Some("my-task (copy from #0)".to_string())
-    );
+    assert_eq!(copied_task.label, Some("my-task".to_string()));
 
     Ok(())
 }
@@ -177,12 +173,6 @@ async fn copy_multiple_tasks() -> Result<()> {
         "Should have six tasks after copying three"
     );
 
-    // Check each copied task
-    for i in 0..3 {
-        let copied_task = state.tasks.get(&(i + 3)).unwrap();
-        assert_eq!(copied_task.label, Some(format!("(copy from #{})", i)));
-    }
-
     Ok(())
 }
 
@@ -221,11 +211,6 @@ async fn copy_to_different_group() -> Result<()> {
     assert_eq!(
         copied_task.original_command, "echo 'test'",
         "Command should be preserved"
-    );
-    assert_eq!(
-        copied_task.label,
-        Some("(copy from #0)".to_string()),
-        "Label should indicate source"
     );
     assert!(
         matches!(copied_task.status, TaskStatus::Stashed { .. }),

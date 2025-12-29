@@ -38,7 +38,6 @@ async fn archive_finished_task() -> Result<()> {
 
     let archived_task = archived_tasks[0];
     assert_eq!(archived_task.original_command, "echo 'test'");
-    assert_eq!(archived_task.label, Some("(archived from #0)".to_string()));
     assert!(
         matches!(archived_task.status, TaskStatus::Stashed { .. }),
         "Archived task should be stashed"
@@ -68,10 +67,7 @@ async fn archive_task_with_label() -> Result<()> {
         .find(|t| t.group == PUEUE_ARCHIVE_GROUP)
         .expect("Should have archived task");
 
-    assert_eq!(
-        archived_task.label,
-        Some("important (archived from #0)".to_string())
-    );
+    assert_eq!(archived_task.label, Some("important".to_string()));
 
     Ok(())
 }
