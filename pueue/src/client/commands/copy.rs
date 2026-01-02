@@ -67,6 +67,7 @@ pub async fn copy(
     }
 
     // Go through all tasks we found and create new tasks from them.
+    let mut new_task_ids = Vec::new();
     for (_, mut task) in tasks {
         task.status = new_status.clone();
         // Create a request to send the new task to the daemon.
@@ -85,16 +86,32 @@ pub async fn copy(
 
         // Send the copied task to the daemon and abort on any failure messages.
         client.send_request(add_task_message).await?;
-        if let Response::Failure(message) = client.receive_response().await? {
-            bail!(message);
-        };
+        match client.receive_response().await? {
+            Response::AddedTask(response) => {
+                new_task_ids.push(response.task_id);
+            }
+            Response::Failure(message) => bail!(message),
+            _ => bail!("Unexpected response from daemon"),
+        }
     }
 
-    if !filtered_tasks.matching_ids.is_empty() {
-        println!("Copied tasks: {:?}", filtered_tasks.matching_ids);
-    }
     if !filtered_tasks.non_matching_ids.is_empty() {
         eprintln!("Couldn't find tasks: {:?}", filtered_tasks.non_matching_ids);
+    }
+
+    if !new_task_ids.is_empty() {
+        if new_task_ids.len() == 1 {
+            println!(
+                "Copied task {} -> new task id: {}",
+                filtered_tasks.matching_ids[0], new_task_ids[0]
+            );
+        } else {
+            println!(
+                "Copied {} tasks -> new task ids: {:?}",
+                new_task_ids.len(),
+                new_task_ids
+            );
+        }
     }
 
     Ok(())

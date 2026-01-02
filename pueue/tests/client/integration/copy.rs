@@ -289,3 +289,76 @@ async fn copy_without_group_preserves_original_group() -> Result<()> {
 
     Ok(())
 }
+
+/// Test that copying a single task displays the new task ID in output.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn copy_displays_new_task_id() -> Result<()> {
+    let daemon = daemon().await?;
+    let shared = &daemon.settings.shared;
+
+    // Create a task and wait for it to finish.
+    assert_success(add_task(shared, "echo 'test'").await?);
+    wait_for_task_condition(shared, 0, Task::is_done).await?;
+
+    // Copy the task and capture output.
+    let output = run_client_command(shared, &["copy", "0"])?;
+    assert!(output.status.success(), "Copy command should succeed");
+
+    // Check that the output contains the new task ID.
+    let stdout = String::from_utf8(output.stdout)?;
+    assert!(
+        stdout.contains("Copied task 0 -> new task id: 1"),
+        "Output should contain the new task id. Got: {stdout}"
+    );
+
+    // Verify the task was actually created.
+    let state = get_state(shared).await?;
+    assert_eq!(state.tasks.len(), 2, "Should have two tasks after copy");
+    assert!(state.tasks.contains_key(&1), "Task 1 should exist");
+
+    Ok(())
+}
+
+/// Test that copying multiple tasks displays all new task IDs in output.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn copy_multiple_displays_new_task_ids() -> Result<()> {
+    let daemon = daemon().await?;
+    let shared = &daemon.settings.shared;
+
+    // Create multiple tasks and wait for them to finish.
+    assert_success(add_task(shared, "echo 'task1'").await?);
+    assert_success(add_task(shared, "echo 'task2'").await?);
+    assert_success(add_task(shared, "echo 'task3'").await?);
+
+    wait_for_task_condition(shared, 0, Task::is_done).await?;
+    wait_for_task_condition(shared, 1, Task::is_done).await?;
+    wait_for_task_condition(shared, 2, Task::is_done).await?;
+
+    // Copy all three tasks and capture output.
+    let output = run_client_command(shared, &["copy", "0,1,2"])?;
+    assert!(output.status.success(), "Copy command should succeed");
+
+    // Check that the output contains the count and new task IDs.
+    let stdout = String::from_utf8(output.stdout)?;
+    assert!(
+        stdout.contains("Copied 3 tasks"),
+        "Output should mention copying 3 tasks. Got: {stdout}"
+    );
+    assert!(
+        stdout.contains("new task ids:"),
+        "Output should contain 'new task ids:'. Got: {stdout}"
+    );
+    assert!(
+        stdout.contains("[3, 4, 5]"),
+        "Output should contain the new task ids [3, 4, 5]. Got: {stdout}"
+    );
+
+    // Verify all tasks were actually created.
+    let state = get_state(shared).await?;
+    assert_eq!(state.tasks.len(), 6, "Should have six tasks after copy");
+    assert!(state.tasks.contains_key(&3), "Task 3 should exist");
+    assert!(state.tasks.contains_key(&4), "Task 4 should exist");
+    assert!(state.tasks.contains_key(&5), "Task 5 should exist");
+
+    Ok(())
+}
