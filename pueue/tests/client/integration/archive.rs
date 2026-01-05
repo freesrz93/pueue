@@ -1,6 +1,10 @@
-use pueue_lib::{Task, TaskStatus, state::PUEUE_ARCHIVE_GROUP};
+use pueue_lib::{Task, TaskStatus};
 
 use crate::{client::helper::*, internal_prelude::*};
+
+/// The name of the special archive group.
+/// This is used internally by the archive functionality.
+const PUEUE_ARCHIVE_GROUP: &str = "archive";
 
 /// Test that archiving a finished task works correctly.
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]

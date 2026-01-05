@@ -106,6 +106,7 @@ pub enum SubCommand {
     /// Archive tasks by copying them into the hidden "archive" group.
     ///
     /// Without any ids, this shows the contents of the archive group.
+    #[command(alias("star"))]
     Archive {
         /// The task ids to be archived. If omitted, the archive group is shown instead.
         /// Supports comma-separated IDs (1,2,3) and ranges (1:5 or 1:10:2).

@@ -4,7 +4,7 @@ use chrono::{DateTime, Local, LocalResult};
 use pueue_lib::{
     Client,
     settings::Settings,
-    state::{PUEUE_ARCHIVE_GROUP, PUEUE_DEFAULT_GROUP, State},
+    state::{PUEUE_DEFAULT_GROUP, State},
     task::Task,
 };
 
@@ -18,6 +18,10 @@ mod table_builder;
 
 use query::apply_query;
 use table_builder::TableBuilder;
+
+/// The name of the special archive group.
+/// This is an internal constant and should not be part of the public API.
+const PUEUE_ARCHIVE_GROUP: &str = "archive";
 
 /// Simply request and print the state.
 pub async fn state(

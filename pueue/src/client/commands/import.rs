@@ -15,6 +15,9 @@ use crate::{
 ///
 /// The `id` field is not required and will be ignored if present.
 /// New task IDs will be automatically assigned by the daemon.
+///
+/// The `dependencies` field is ignored during import. Tasks are always imported
+/// without dependencies.
 #[derive(Debug, Deserialize)]
 struct ImportableTask {
     #[serde(rename = "command")]
@@ -24,8 +27,6 @@ struct ImportableTask {
     label: Option<String>,
     #[serde(default)]
     priority: i32,
-    #[serde(default)]
-    dependencies: Vec<usize>,
 }
 
 /// Import tasks from TOML format.
@@ -58,13 +59,15 @@ pub async fn import(
 # Note: The 'id' field is optional and will be ignored if present.
 #       New task IDs will be automatically assigned by the daemon.
 # 
+# Note: The 'dependencies' field is not supported during import and will be ignored.
+#       Imported tasks are always created without dependencies.
+# 
 # Example:
 # [task1]
 # command = "echo 'Hello, World!'"
 # path = "/home/user"
 # label = "My Task"
 # priority = 0
-# dependencies = []
 
 "#;
         std::fs::write(&temp_file_path, template).map_err(|err| {
@@ -102,7 +105,7 @@ pub async fn import(
             stashed: true,
             group: target_group.clone(),
             enqueue_at: None,
-            dependencies: importable_task.dependencies.clone(),
+            dependencies: Vec::new(), // Dependencies are not supported during import
             priority: Some(importable_task.priority),
             label: importable_task.label.clone(),
         });

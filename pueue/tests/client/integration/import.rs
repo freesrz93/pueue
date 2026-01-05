@@ -96,17 +96,18 @@ dependencies = []
     Ok(())
 }
 
-/// Test importing tasks with dependencies.
+/// Test that the dependencies field is ignored during import.
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn import_with_dependencies() -> Result<()> {
+async fn import_ignores_dependencies() -> Result<()> {
     let daemon = daemon().await?;
     let shared = &daemon.settings.shared;
 
-    // First create some existing tasks to use as dependencies
+    // First create some existing tasks
     assert_success(add_task(shared, "echo 'base task 1'").await?);
     assert_success(add_task(shared, "echo 'base task 2'").await?);
 
-    // Create a TOML file with a task that depends on existing tasks
+    // Create a TOML file with a task that specifies dependencies
+    // These dependencies should be ignored
     let toml_content = r#"
 [task1]
 command = "echo 'dependent task'"
@@ -121,10 +122,14 @@ dependencies = [0, 1]
     // Import the task
     run_client_command(shared, &["import", "-f", temp_file.to_str().unwrap()])?.success()?;
 
-    // Verify the dependencies were preserved
+    // Verify the dependencies field was ignored and the task has no dependencies
     let state = get_state(shared).await?;
     let task = state.tasks.get(&2).unwrap();
-    assert_eq!(task.dependencies, vec![0, 1]);
+    assert_eq!(
+        task.dependencies,
+        Vec::<usize>::new(),
+        "Dependencies field should be ignored during import"
+    );
 
     Ok(())
 }
@@ -386,6 +391,57 @@ dependencies = []
 
     let task1 = state.tasks.get(&1).unwrap();
     assert_eq!(task1.original_command, "echo 'second'");
+
+    Ok(())
+}
+
+/// Test that import succeeds even when non-existent task IDs are specified in dependencies.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn import_with_nonexistent_dependencies() -> Result<()> {
+    let daemon = daemon().await?;
+    let shared = &daemon.settings.shared;
+
+    // Create a TOML file with dependencies pointing to non-existent tasks
+    // This should not cause an error since dependencies are ignored
+    let toml_content = r#"
+[task1]
+command = "echo 'task with invalid deps'"
+path = "/tmp"
+priority = 0
+dependencies = [999, 888, 777]
+
+[task2]
+command = "echo 'another task'"
+path = "/tmp"
+priority = 0
+dependencies = [100]
+"#;
+
+    let temp_file = daemon.tempdir.path().join("nonexistent_deps.toml");
+    fs::write(&temp_file, toml_content)?;
+
+    // Import should succeed because dependencies are ignored
+    run_client_command(shared, &["import", "-f", temp_file.to_str().unwrap()])?.success()?;
+
+    // Verify the tasks were created without any dependencies
+    let state = get_state(shared).await?;
+    assert_eq!(state.tasks.len(), 2, "Should have imported 2 tasks");
+
+    let task0 = state.tasks.get(&0).unwrap();
+    assert_eq!(task0.original_command, "echo 'task with invalid deps'");
+    assert_eq!(
+        task0.dependencies,
+        Vec::<usize>::new(),
+        "Should have no dependencies"
+    );
+
+    let task1 = state.tasks.get(&1).unwrap();
+    assert_eq!(task1.original_command, "echo 'another task'");
+    assert_eq!(
+        task1.dependencies,
+        Vec::<usize>::new(),
+        "Should have no dependencies"
+    );
 
     Ok(())
 }

@@ -3,12 +3,15 @@ use std::collections::BTreeMap;
 use pueue_lib::{
     Client, Settings, State,
     message::{AddRequest, GroupRequest, Response},
-    state::PUEUE_ARCHIVE_GROUP,
     task::{Task, TaskStatus},
 };
 
 use super::{get_state, handle_user_confirmation, remove::remove, state::state};
 use crate::{client::style::OutputStyle, internal_prelude::*};
+
+/// The name of the special archive group.
+/// This is an internal constant and should not be part of the public API.
+const PUEUE_ARCHIVE_GROUP: &str = "archive";
 
 /// Archive tasks by copying them into the hidden `archive` group and removing the originals.
 /// Calling the command without any task ids shows the archive group.
