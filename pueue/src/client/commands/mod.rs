@@ -342,9 +342,13 @@ pub async fn handle_command(
             state(client, settings, style, query, json, group).await
         }
         SubCommand::Switch {
-            task_id_1,
-            task_id_2,
-        } => switch(client, style, task_id_1, task_id_2).await,
+            task_ids_1,
+            task_ids_2,
+        } => {
+            let task_ids_1 = parse_task_ids(&task_ids_1)?;
+            let task_ids_2 = parse_task_ids(&task_ids_2)?;
+            switch(client, style, task_ids_1, task_ids_2).await
+        }
         SubCommand::Wait {
             task_ids,
             group,
