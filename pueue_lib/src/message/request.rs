@@ -127,8 +127,8 @@ impl_into_request!(AddRequest, Request::Add);
 
 #[derive(PartialEq, Eq, Clone, Debug, Deserialize, Serialize)]
 pub struct SwitchRequest {
-    pub task_id_1: usize,
-    pub task_id_2: usize,
+    pub task_ids_1: Vec<usize>,
+    pub task_ids_2: Vec<usize>,
 }
 impl_into_request!(SwitchRequest, Request::Switch);
 

@@ -11,4 +11,5 @@ mod import;
 mod log;
 mod restart;
 mod status;
+mod switch;
 mod wait;

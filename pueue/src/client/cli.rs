@@ -117,14 +117,16 @@ pub enum SubCommand {
         #[arg(short, long)]
         json: bool,
     },
-    /// Switches the queue position of two commands.
+    /// Switches the queue position of tasks.
     ///
     /// Only works on queued and stashed commands.
+    /// Accepts two lists of task IDs and swaps them pairwise.
+    /// Supports single IDs, comma-separated (1,2,3), and ranges (1:3).
     Switch {
-        /// The first task id.
-        task_id_1: usize,
-        /// The second task id.
-        task_id_2: usize,
+        /// First list of task IDs.
+        task_ids_1: String,
+        /// Second list of task IDs. Must have the same length as task_ids_1.
+        task_ids_2: String,
     },
     /// Stash a task. Stashed tasks won't be automatically started.
     ///

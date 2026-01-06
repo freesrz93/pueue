@@ -15,6 +15,7 @@ use crate::{
 
 /// Copy existing tasks, creating new tasks with the same command and configuration.
 /// Unlike restart, this works on tasks in any state.
+#[allow(clippy::too_many_arguments)]
 pub async fn copy(
     client: &mut Client,
     settings: Settings,
