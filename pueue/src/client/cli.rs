@@ -295,6 +295,10 @@ pub enum SubCommand {
         /// Edit the task before copying.
         #[arg(short, long)]
         edit: bool,
+
+        /// Number of times to copy each task (default: 1).
+        #[arg(short, long, default_value = "1")]
+        count: usize,
     },
 
     /// Either pause running tasks or specific groups of tasks.

@@ -304,6 +304,7 @@ pub async fn handle_command(
             enqueue,
             group,
             edit,
+            count,
         } => {
             let task_ids = parse_task_ids(&task_ids)?;
             copy(
@@ -314,6 +315,7 @@ pub async fn handle_command(
                 enqueue,
                 group,
                 edit,
+                count,
             )
             .await
         }

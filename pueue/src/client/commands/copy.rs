@@ -23,9 +23,14 @@ pub async fn copy(
     enqueue: bool,
     group: Option<String>,
     edit: bool,
+    count: usize,
 ) -> Result<()> {
     if task_ids.is_empty() {
         bail!("Please provide the ids of the tasks you want to copy.");
+    }
+
+    if count == 0 {
+        bail!("Copy count must be at least 1.");
     }
 
     // By default, copied tasks are stashed unless --enqueue is specified
@@ -70,28 +75,32 @@ pub async fn copy(
     let mut new_task_ids = Vec::new();
     for (_, mut task) in tasks {
         task.status = new_status.clone();
-        // Create a request to send the new task to the daemon.
-        let add_task_message = AddRequest {
-            command: task.original_command,
-            path: task.path,
-            envs: task.envs,
-            start_immediately,
-            stashed: !enqueue,
-            group: group.clone().unwrap_or(task.group),
-            enqueue_at: None,
-            dependencies: Vec::new(),
-            priority: Some(task.priority),
-            label: task.label,
-        };
 
-        // Send the copied task to the daemon and abort on any failure messages.
-        client.send_request(add_task_message).await?;
-        match client.receive_response().await? {
-            Response::AddedTask(response) => {
-                new_task_ids.push(response.task_id);
+        // Copy each task 'count' times
+        for _ in 0..count {
+            // Create a request to send the new task to the daemon.
+            let add_task_message = AddRequest {
+                command: task.original_command.clone(),
+                path: task.path.clone(),
+                envs: task.envs.clone(),
+                start_immediately,
+                stashed: !enqueue,
+                group: group.clone().unwrap_or_else(|| task.group.clone()),
+                enqueue_at: None,
+                dependencies: Vec::new(),
+                priority: Some(task.priority),
+                label: task.label.clone(),
+            };
+
+            // Send the copied task to the daemon and abort on any failure messages.
+            client.send_request(add_task_message).await?;
+            match client.receive_response().await? {
+                Response::AddedTask(response) => {
+                    new_task_ids.push(response.task_id);
+                }
+                Response::Failure(message) => bail!(message),
+                _ => bail!("Unexpected response from daemon"),
             }
-            Response::Failure(message) => bail!(message),
-            _ => bail!("Unexpected response from daemon"),
         }
     }
 
