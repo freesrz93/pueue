@@ -34,6 +34,17 @@ pub fn remove(settings: &Settings, state: &SharedState, task_ids: Vec<usize>) ->
     }
 
     for task_id in &filtered_tasks.matching_ids {
+        // Before removing the task, clean up reverse dependencies
+        if let Some(task) = state.tasks().get(task_id) {
+            // Remove this task from the dependents lists of its dependencies
+            let dependencies = task.dependencies.clone();
+            for &dep_id in &dependencies {
+                if let Some(dep_task) = state.tasks_mut().get_mut(&dep_id) {
+                    dep_task.dependents.retain(|&id| id != *task_id);
+                }
+            }
+        }
+
         state.tasks_mut().remove(task_id);
 
         clean_log_handles(*task_id, &settings.shared.pueue_directory());
@@ -80,12 +91,22 @@ mod tests {
             // Add a task with a dependency to a finished task
             let mut task = get_stub_task("5", StubStatus::Queued);
             task.dependencies = vec![1];
-            state.add_task(task);
+            let task_id = state.add_task(task);
+
+            // Update reverse dependency index
+            if let Some(dep_task) = state.tasks_mut().get_mut(&1) {
+                dep_task.dependents.push(task_id);
+            }
 
             // Add a task depending on the previous task -> Linked dependencies
             let mut task = get_stub_task("6", StubStatus::Queued);
             task.dependencies = vec![5];
-            state.add_task(task);
+            let task_id = state.add_task(task);
+
+            // Update reverse dependency index
+            if let Some(dep_task) = state.tasks_mut().get_mut(&5) {
+                dep_task.dependents.push(task_id);
+            }
         }
 
         // Make sure we cannot remove a task with dependencies.

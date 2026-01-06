@@ -157,6 +157,9 @@ pub fn edit(
                 ));
             };
 
+            // Save old dependencies to update reverse index
+            let old_dependencies = task.dependencies.clone();
+
             // Restore the task to its previous state.
             task.status = *previous_status.clone();
 
@@ -166,7 +169,29 @@ pub fn edit(
             task.path = editable_task.path;
             task.label = editable_task.label;
             task.priority = editable_task.priority;
-            task.dependencies = editable_task.dependencies;
+            task.dependencies = editable_task.dependencies.clone();
+
+            // Update reverse dependency index (dependents)
+            // Remove this task from old dependencies' dependents lists
+            for &old_dep_id in &old_dependencies {
+                if !editable_task.dependencies.contains(&old_dep_id) {
+                    if let Some(dep_task) = state.tasks_mut().get_mut(&old_dep_id) {
+                        dep_task.dependents.retain(|&id| id != editable_task.id);
+                    }
+                }
+            }
+
+            // Add this task to new dependencies' dependents lists
+            for &new_dep_id in &editable_task.dependencies {
+                if !old_dependencies.contains(&new_dep_id) {
+                    if let Some(dep_task) = state.tasks_mut().get_mut(&new_dep_id) {
+                        if !dep_task.dependents.contains(&editable_task.id) {
+                            dep_task.dependents.push(editable_task.id);
+                            dep_task.dependents.sort_unstable();
+                        }
+                    }
+                }
+            }
         }
     }
 

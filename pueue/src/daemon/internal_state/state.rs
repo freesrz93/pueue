@@ -197,15 +197,25 @@ impl InternalState {
     /// `to_delete` A list of task ids, which should also be deleted.
     ///             This allows to remove dependency tasks as well as their dependants.
     pub fn is_task_removable(&self, task_id: &usize, to_delete: &[usize]) -> bool {
-        // Get all task ids of any dependant tasks.
-        let dependants: Vec<usize> = self
-            .tasks()
+        // Optimized version using the dependents field (reverse dependency index)
+        // Get the task and check its dependents directly
+        let Some(task) = self.tasks().get(task_id) else {
+            return true;
+        };
+
+        // Get all task ids of any dependant tasks that haven't finished yet.
+        let dependants: Vec<usize> = task
+            .dependents
             .iter()
-            .filter(|(_, task)| {
-                task.dependencies.contains(task_id)
-                    && !matches!(task.status, TaskStatus::Done { .. })
+            .filter_map(|&dependent_id| {
+                self.tasks().get(&dependent_id).and_then(|dep_task| {
+                    if !matches!(dep_task.status, TaskStatus::Done { .. }) {
+                        Some(dependent_id)
+                    } else {
+                        None
+                    }
+                })
             })
-            .map(|(_, task)| task.id)
             .collect();
 
         if dependants.is_empty() {
@@ -375,6 +385,44 @@ impl InternalState {
             }
         }
 
+        // Build reverse dependency index (dependents) for all tasks.
+        // This is needed for older state files that don't have the dependents field,
+        // and as a safety measure to ensure consistency.
+        state.build_reverse_dependency_index();
+
         Ok(Some(state))
+    }
+
+    /// Build or rebuild the reverse dependency index (dependents field) for all tasks.
+    /// This should be called after deserializing the state from disk to ensure the
+    /// dependents field is properly populated.
+    fn build_reverse_dependency_index(&mut self) {
+        // First, clear all existing dependents
+        for (_, task) in self.inner.tasks.iter_mut() {
+            task.dependents.clear();
+        }
+
+        // Build the reverse index by iterating through all tasks' dependencies
+        let dependencies_map: Vec<(usize, Vec<usize>)> = self
+            .inner
+            .tasks
+            .iter()
+            .map(|(id, task)| (*id, task.dependencies.clone()))
+            .collect();
+
+        for (task_id, dependencies) in dependencies_map {
+            for dep_id in dependencies {
+                if let Some(dep_task) = self.inner.tasks.get_mut(&dep_id) {
+                    if !dep_task.dependents.contains(&task_id) {
+                        dep_task.dependents.push(task_id);
+                    }
+                }
+            }
+        }
+
+        // Sort all dependents lists for consistency
+        for (_, task) in self.inner.tasks.iter_mut() {
+            task.dependents.sort_unstable();
+        }
     }
 }

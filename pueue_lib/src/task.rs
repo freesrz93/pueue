@@ -63,6 +63,9 @@ pub struct Task {
     pub envs: HashMap<String, String>,
     pub group: String,
     pub dependencies: Vec<usize>,
+    /// Reverse dependency index: which tasks depend on this task
+    #[serde(default)]
+    pub dependents: Vec<usize>,
     pub priority: i32,
     pub label: Option<String>,
     pub status: TaskStatus,
@@ -89,6 +92,7 @@ impl Task {
             envs,
             group,
             dependencies,
+            dependents: Vec::new(),
             priority,
             label,
             status: starting_status.clone(),
@@ -165,6 +169,7 @@ impl std::fmt::Debug for Task {
             .field("envs", &"hidden")
             .field("group", &self.group)
             .field("dependencies", &self.dependencies)
+            .field("dependents", &self.dependents)
             .field("label", &self.label)
             .field("status", &self.status)
             .field("priority", &self.priority)

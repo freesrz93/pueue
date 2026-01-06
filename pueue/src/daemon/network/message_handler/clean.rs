@@ -54,6 +54,17 @@ pub fn clean(settings: &Settings, state: &SharedState, message: CleanRequest) ->
                 }
             }
         }
+        
+        // Clean up reverse dependencies before removing the task
+        if let Some(task) = state.tasks().get(task_id) {
+            let dependencies = task.dependencies.clone();
+            for &dep_id in &dependencies {
+                if let Some(dep_task) = state.tasks_mut().get_mut(&dep_id) {
+                    dep_task.dependents.retain(|&id| id != *task_id);
+                }
+            }
+        }
+        
         let _ = state.tasks_mut().remove(task_id).unwrap();
         clean_log_handles(*task_id, &settings.shared.pueue_directory());
     }

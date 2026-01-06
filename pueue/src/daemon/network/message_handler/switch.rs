@@ -1,4 +1,5 @@
 use pueue_lib::{Settings, TaskStatus, failure_msg, message::*};
+use std::collections::HashSet;
 
 use super::ok_or_failure_message;
 use crate::{daemon::internal_state::SharedState, ok_or_save_state_failure};
@@ -36,23 +37,50 @@ pub fn switch(settings: &Settings, state: &SharedState, message: SwitchRequest) 
     first_task.id = second_id;
     second_task.id = first_id;
 
+    // Collect unique dependencies and dependents (excluding common ones)
+    let first_deps_set: HashSet<_> = first_task.dependencies.iter().copied().collect();
+    let second_deps_set: HashSet<_> = second_task.dependencies.iter().copied().collect();
+    let unique_dependencies: Vec<usize> = first_deps_set
+        .symmetric_difference(&second_deps_set)
+        .copied()
+        .collect();
+
+    let first_dependents_set: HashSet<_> = first_task.dependents.iter().copied().collect();
+    let second_dependents_set: HashSet<_> = second_task.dependents.iter().copied().collect();
+    let unique_dependents: Vec<usize> = first_dependents_set
+        .symmetric_difference(&second_dependents_set)
+        .copied()
+        .collect();
+
     // Put tasks back in again
     state.tasks_mut().insert(first_task.id, first_task);
     state.tasks_mut().insert(second_task.id, second_task);
 
-    for (_, task) in state.tasks_mut().iter_mut() {
-        // If the task depends on both, we can just keep it as it is.
-        if task.dependencies.contains(&first_id) && task.dependencies.contains(&second_id) {
-            continue;
+    // Update dependents lists: swap first_id <-> second_id
+    for &dep_id in &unique_dependencies {
+        if let Some(dep_task) = state.tasks_mut().get_mut(&dep_id) {
+            for id in dep_task.dependents.iter_mut() {
+                if *id == first_id {
+                    *id = second_id;
+                } else if *id == second_id {
+                    *id = first_id;
+                }
+            }
+            dep_task.dependents.sort_unstable();
         }
+    }
 
-        // If one of the ids is in the task's dependency list, replace it with the other one.
-        if let Some(old_id) = task.dependencies.iter_mut().find(|id| *id == &first_id) {
-            *old_id = second_id;
-            task.dependencies.sort_unstable();
-        } else if let Some(old_id) = task.dependencies.iter_mut().find(|id| *id == &second_id) {
-            *old_id = first_id;
-            task.dependencies.sort_unstable();
+    // Update dependencies lists: swap first_id <-> second_id
+    for &dependent_id in &unique_dependents {
+        if let Some(dependent_task) = state.tasks_mut().get_mut(&dependent_id) {
+            for id in dependent_task.dependencies.iter_mut() {
+                if *id == first_id {
+                    *id = second_id;
+                } else if *id == second_id {
+                    *id = first_id;
+                }
+            }
+            dependent_task.dependencies.sort_unstable();
         }
     }
 
@@ -102,6 +130,13 @@ mod tests {
             let mut task = get_stub_task("6", StubStatus::Queued);
             task.dependencies = vec![2, 3];
             state.add_task(task);
+
+            // Manually update dependents lists to match dependencies
+            // This mimics the behavior of the add_task message handler
+            state.tasks_mut().get_mut(&0).unwrap().dependents = vec![4];
+            state.tasks_mut().get_mut(&1).unwrap().dependents = vec![5];
+            state.tasks_mut().get_mut(&2).unwrap().dependents = vec![6];
+            state.tasks_mut().get_mut(&3).unwrap().dependents = vec![4, 6];
         }
 
         (state, settings, tempdir)

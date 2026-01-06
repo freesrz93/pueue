@@ -66,6 +66,10 @@ pub fn add_task(settings: &Settings, state: &SharedState, message: AddRequest) -
     task.dependencies.sort_unstable();
     task.dependencies.dedup();
 
+    // Update reverse dependency index (dependents) for all dependencies.
+    // This needs to be done after the task is added to get its ID.
+    let dependencies = task.dependencies.clone();
+
     // Check if the task's group is paused before we pass it to the state
     let group_status = state
         .groups()
@@ -76,6 +80,17 @@ pub fn add_task(settings: &Settings, state: &SharedState, message: AddRequest) -
 
     // Add the task and persist the state.
     let task_id = state.add_task(task);
+
+    // Update dependents list for all dependencies
+    for &dep_id in &dependencies {
+        if let Some(dep_task) = state.tasks_mut().get_mut(&dep_id) {
+            if !dep_task.dependents.contains(&task_id) {
+                dep_task.dependents.push(task_id);
+                dep_task.dependents.sort_unstable();
+            }
+        }
+    }
+
     ok_or_save_state_failure!(state.save(settings));
 
     // Notify the task handler, in case the client wants to start the task immediately.
