@@ -197,9 +197,9 @@ fn get_tasks(state: &State, selection: &TaskSelection) -> Vec<Task> {
 /// Write a log line about a newly discovered task.
 fn log_new_task(task: &Task, style: &OutputStyle, first_run: bool) {
     let current_time = Local::now().format("%H:%M:%S").to_string();
-    let color = get_color_for_status(&task.status);
+    let (color, attribute) = get_color_and_attribute_for_status(&task.status);
     let task_id = style.style_text(task.id, None, Some(Attribute::Bold));
-    let status = style.style_text(&task.status, Some(color), None);
+    let status = style.style_text(&task.status, Some(color), attribute);
 
     if !first_run {
         // Don't log non-active tasks in the initial loop.
@@ -256,25 +256,31 @@ fn log_status_change(previous_status: TaskStatus, task: &Task, style: &OutputSty
 
     // The task didn't finish yet, but changed it's state (e.g. from `Queued` to `Running`).
     // Inform the user about this change.
-    let new_status_color = get_color_for_status(&task.status);
-    let previous_status_color = get_color_for_status(&previous_status);
+    let (new_status_color, new_attribute) = get_color_and_attribute_for_status(&task.status);
+    let (previous_status_color, previous_attribute) =
+        get_color_and_attribute_for_status(&previous_status);
 
-    let previous_status = style.style_text(previous_status, Some(previous_status_color), None);
-    let new_status = style.style_text(&task.status, Some(new_status_color), None);
+    let previous_status = style.style_text(
+        previous_status,
+        Some(previous_status_color),
+        previous_attribute,
+    );
+    let new_status = style.style_text(&task.status, Some(new_status_color), new_attribute);
     println!("{current_time} - Task {task_id} changed from {previous_status} to {new_status}",);
 }
 
-fn get_color_for_status(task_status: &TaskStatus) -> Color {
+fn get_color_and_attribute_for_status(task_status: &TaskStatus) -> (Color, Option<Attribute>) {
     match task_status {
-        TaskStatus::Paused { .. } | TaskStatus::Locked { .. } => Color::White,
-        TaskStatus::Running { .. } => Color::Green,
+        TaskStatus::Paused { .. } | TaskStatus::Locked { .. } => (Color::White, None),
+        TaskStatus::Running { .. } => (Color::Green, Some(Attribute::Bold)),
         TaskStatus::Done { result, .. } => {
             if matches!(result, TaskResult::Success) {
-                Color::Green
+                (Color::Green, None)
             } else {
-                Color::Red
+                (Color::Red, None)
             }
         }
-        _ => Color::White,
+        TaskStatus::Queued { .. } => (Color::Cyan, None),
+        TaskStatus::Stashed { .. } => (Color::Yellow, None),
     }
 }

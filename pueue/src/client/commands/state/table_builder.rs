@@ -1,5 +1,5 @@
 use chrono::TimeDelta;
-use comfy_table::{Cell, ContentArrangement, Row, Table, presets::UTF8_HORIZONTAL_ONLY};
+use comfy_table::{Attribute, Cell, ContentArrangement, Row, Table, presets::UTF8_HORIZONTAL_ONLY};
 use crossterm::style::Color;
 use pueue_lib::{
     settings::Settings,
@@ -203,23 +203,30 @@ impl<'a> TableBuilder<'a> {
             if self.status {
                 // Determine the human readable task status representation and the respective color.
                 let status_string = task.status.to_string();
-                let (status_text, color) = match &task.status {
-                    TaskStatus::Running { .. } => (status_string, Color::Green),
+                let (status_text, color, attribute) = match &task.status {
+                    TaskStatus::Running { .. } => {
+                        (status_string, Color::Green, Some(Attribute::Bold))
+                    }
                     TaskStatus::Paused { .. } | TaskStatus::Locked { .. } => {
-                        (status_string, Color::White)
+                        (status_string, Color::White, None)
                     }
                     TaskStatus::Done { result, .. } => match result {
-                        TaskResult::Success => (TaskResult::Success.to_string(), Color::Green),
-                        TaskResult::DependencyFailed => {
-                            ("Dependency failed".to_string(), Color::Red)
+                        TaskResult::Success => {
+                            (TaskResult::Success.to_string(), Color::Green, None)
                         }
-                        TaskResult::FailedToSpawn(_) => ("Failed to spawn".to_string(), Color::Red),
-                        TaskResult::Failed(code) => (format!("Failed ({code})"), Color::Red),
-                        _ => (result.to_string(), Color::Red),
+                        TaskResult::DependencyFailed => {
+                            ("Dependency failed".to_string(), Color::Red, None)
+                        }
+                        TaskResult::FailedToSpawn(_) => {
+                            ("Failed to spawn".to_string(), Color::Red, None)
+                        }
+                        TaskResult::Failed(code) => (format!("Failed ({code})"), Color::Red, None),
+                        _ => (result.to_string(), Color::Red, None),
                     },
-                    _ => (status_string, Color::Yellow),
+                    TaskStatus::Queued { .. } => (status_string, Color::Cyan, None),
+                    TaskStatus::Stashed { .. } => (status_string, Color::Yellow, None),
                 };
-                row.add_cell(self.style.styled_cell(status_text, Some(color), None));
+                row.add_cell(self.style.styled_cell(status_text, Some(color), attribute));
             }
 
             if self.priority {

@@ -29,6 +29,7 @@ impl OutputStyle {
                 Color::Green => Color::DarkGreen,
                 Color::Red => Color::DarkRed,
                 Color::Yellow => Color::DarkYellow,
+                Color::Cyan => Color::DarkCyan,
                 _ => color,
             }
         } else {
@@ -43,6 +44,7 @@ impl OutputStyle {
                 Color::Green => ComfyColor::DarkGreen,
                 Color::Red => ComfyColor::DarkRed,
                 Color::Yellow => ComfyColor::DarkYellow,
+                Color::Cyan => ComfyColor::DarkCyan,
                 _ => ComfyColor::White,
             };
         }
@@ -51,6 +53,7 @@ impl OutputStyle {
             Color::Green => ComfyColor::Green,
             Color::Red => ComfyColor::Red,
             Color::Yellow => ComfyColor::Yellow,
+            Color::Cyan => ComfyColor::Cyan,
             _ => ComfyColor::White,
         }
     }

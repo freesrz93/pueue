@@ -154,22 +154,30 @@ fn print_task_info(task: &Task, style: &OutputStyle) {
         Some(ComfyAttribute::Bold),
     );
 
-    let (exit_status, color) = match &task.status {
-        TaskStatus::Paused { .. } => ("paused".into(), Color::White),
-        TaskStatus::Running { .. } => ("running".into(), Color::Yellow),
+    let (exit_status, color, attribute) = match &task.status {
+        TaskStatus::Paused { .. } => ("paused".into(), Color::White, None),
+        TaskStatus::Running { .. } => ("running".into(), Color::Green, Some(ComfyAttribute::Bold)),
         TaskStatus::Done { result, .. } => match result {
-            TaskResult::Success => ("completed successfully".into(), Color::Green),
-            TaskResult::Failed(exit_code) => {
-                (format!("failed with exit code {exit_code}"), Color::Red)
-            }
-            TaskResult::FailedToSpawn(_err) => ("Failed to spawn".to_string(), Color::Red),
-            TaskResult::Killed => ("killed by system or user".into(), Color::Red),
-            TaskResult::Errored => ("some IO error.\n Check daemon log.".into(), Color::Red),
-            TaskResult::DependencyFailed => ("dependency failed".into(), Color::Red),
+            TaskResult::Success => ("completed successfully".into(), Color::Green, None),
+            TaskResult::Failed(exit_code) => (
+                format!("failed with exit code {exit_code}"),
+                Color::Red,
+                None,
+            ),
+            TaskResult::FailedToSpawn(_err) => ("Failed to spawn".to_string(), Color::Red, None),
+            TaskResult::Killed => ("killed by system or user".into(), Color::Red, None),
+            TaskResult::Errored => (
+                "some IO error.\n Check daemon log.".into(),
+                Color::Red,
+                None,
+            ),
+            TaskResult::DependencyFailed => ("dependency failed".into(), Color::Red, None),
         },
-        _ => (task.status.to_string(), Color::White),
+        TaskStatus::Queued { .. } => ("queued".into(), Color::Cyan, None),
+        TaskStatus::Stashed { .. } => ("stashed".into(), Color::Yellow, None),
+        _ => (task.status.to_string(), Color::White, None),
     };
-    let status_cell = style.styled_cell(exit_status, Some(color), None);
+    let status_cell = style.styled_cell(exit_status, Some(color), attribute);
 
     // The styling of the task number and status is done by a single-row table.
     let mut table = Table::new();
