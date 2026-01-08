@@ -1,6 +1,6 @@
 [package]
 name = "pueue"
-version = "5.1.2"
+version = "5.2.0"
 description = "A cli tool for managing long running shell commands."
 readme = "../README.md"
 keywords = ["command", "parallel", "queue", "shell", "task"]
@@ -38,7 +38,7 @@ indexmap = { version = "2", features = ["serde"] }
 interim = { version = "0.2", features = ["chrono_0_4"] }
 pest = "2.8"
 pest_derive = "2.8"
-pueue-lib = { version = "0.31", path = "../pueue_lib", features = ["client"] }
+pueue-lib = { version = "0.32", path = "../pueue_lib", features = ["client"] }
 rcgen = "0.14"
 rustls.workspace = true
 serde.workspace = true
