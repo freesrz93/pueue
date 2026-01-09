@@ -10,6 +10,7 @@ mod group;
 mod import;
 mod log;
 mod restart;
+mod reverse;
 mod status;
 mod switch;
 mod wait;

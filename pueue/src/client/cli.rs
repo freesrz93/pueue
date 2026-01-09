@@ -93,6 +93,7 @@ pub enum SubCommand {
         #[arg(short, long)]
         print_task_id: bool,
     },
+
     /// Remove tasks from the list.
     /// Running or paused tasks need to be killed first.
     #[command(alias("rm"))]
@@ -117,6 +118,7 @@ pub enum SubCommand {
         #[arg(short, long)]
         json: bool,
     },
+
     /// Switches the queue position of tasks.
     ///
     /// Only works on queued and stashed commands.
@@ -128,6 +130,18 @@ pub enum SubCommand {
         /// Second list of task IDs. Must have the same length as task_ids_1.
         task_ids_2: String,
     },
+
+    /// Reverses the order of specified tasks in the queue.
+    ///
+    /// Only works on queued and stashed commands.
+    /// Takes a list of task IDs and reverses their order in the queue.
+    /// For example, if tasks 1,2,3,4 are in that order, reverse will make them 4,3,2,1.
+    /// Supports single IDs, comma-separated (1,2,3), and ranges (1:3).
+    Reverse {
+        /// List of task IDs to reverse.
+        task_ids: String,
+    },
+
     /// Stash a task. Stashed tasks won't be automatically started.
     ///
     /// The enqueue an item, use the `pueue enqueue` subcommand.
@@ -150,6 +164,7 @@ pub enum SubCommand {
         #[arg(name = "delay", short, long, value_parser = parse_delay_until)]
         delay_until: Option<DateTime<Local>>,
     },
+
     /// Enqueue stashed tasks. They'll be handled normally afterwards.
     ///
     /// Enqueues all stashed task in the default group if no arguments are given.

@@ -37,6 +37,7 @@ mod pause;
 mod remove;
 mod reset;
 mod restart;
+mod reverse;
 mod send;
 mod shutdown;
 mod start;
@@ -65,6 +66,7 @@ use pause::pause;
 use remove::remove;
 use reset::reset;
 use restart::restart;
+use reverse::reverse;
 use send::send;
 use shutdown::shutdown;
 use start::start;
@@ -348,6 +350,10 @@ pub async fn handle_command(
             let task_ids_1 = parse_task_ids(&task_ids_1)?;
             let task_ids_2 = parse_task_ids(&task_ids_2)?;
             switch(client, style, task_ids_1, task_ids_2).await
+        }
+        SubCommand::Reverse { task_ids } => {
+            let task_ids = parse_task_ids(&task_ids)?;
+            reverse(client, style, task_ids).await
         }
         SubCommand::Wait {
             task_ids,
