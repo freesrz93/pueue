@@ -20,7 +20,7 @@ pub async fn reverse(client: &mut Client, style: &OutputStyle, task_ids: Vec<usi
     let mut task_ids_1 = Vec::new();
     let mut task_ids_2 = Vec::new();
 
-    let mid = (task_ids.len() + 1) / 2;
+    let mid = task_ids.len().div_ceil(2);
     for i in 0..mid {
         let j = task_ids.len() - 1 - i;
         if i < j {
